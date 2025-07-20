@@ -66,8 +66,8 @@ try {
         throw new Exception('Email hoặc mật khẩu không đúng');
     }
     
-    // Generate new token
-    $token = generateToken();
+    // Generate new token with user ID
+    $token = $user['id'] . '_' . generateToken();
     
     // Remove password from user data
     unset($user['password']);

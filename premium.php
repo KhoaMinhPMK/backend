@@ -20,14 +20,17 @@ function getUserIdFromToken($pdo) {
     
     $token = $matches[1];
     
-    // Simple token validation - check if user exists with this token in last login
-    $stmt = $pdo->prepare("SELECT id FROM users WHERE lastLoginTime > DATE_SUB(NOW(), INTERVAL 24 HOUR) LIMIT 1");
-    $stmt->execute();
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    // For demo purposes, return user ID 1 if valid token format, otherwise null
-    if (strlen($token) === 64 && $user) {
-        return $user['id'];
+    // For demo: decode user ID from token if it's in format "userId_randomstring"
+    if (preg_match('/^(\d+)_[a-f0-9]{64}$/', $token, $matches)) {
+        $userId = (int)$matches[1];
+        
+        // Verify user exists
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE id = ? AND active = 1");
+        $stmt->execute([$userId]);
+        
+        if ($stmt->fetch()) {
+            return $userId;
+        }
     }
     
     return null;
