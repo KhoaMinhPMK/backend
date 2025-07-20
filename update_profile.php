@@ -152,6 +152,86 @@ try {
         $updateValues[] = $gender;
     }
     
+    // Blood type validation
+    if (isset($input['bloodType'])) {
+        $bloodType = trim($input['bloodType']);
+        if (!empty($bloodType)) {
+            // Valid blood types
+            $validBloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'A', 'B', 'AB', 'O'];
+            if (!in_array(strtoupper($bloodType), $validBloodTypes)) {
+                sendErrorResponse('Invalid blood type', 'Blood type must be one of: A+, A-, B+, B-, AB+, AB-, O+, O-, A, B, AB, O', 400);
+            }
+            $bloodType = strtoupper($bloodType);
+        } else {
+            $bloodType = null;
+        }
+        $updateFields[] = 'bloodType = ?';
+        $updateValues[] = $bloodType;
+    }
+    
+    // Allergies validation
+    if (isset($input['allergies'])) {
+        $allergies = trim($input['allergies']);
+        if (strlen($allergies) > 1000) {
+            sendErrorResponse('Invalid allergies', 'Allergies information cannot exceed 1000 characters', 400);
+        }
+        $updateFields[] = 'allergies = ?';
+        $updateValues[] = $allergies ?: null;
+    }
+    
+    // Medical conditions validation
+    if (isset($input['medicalConditions'])) {
+        $medicalConditions = trim($input['medicalConditions']);
+        if (strlen($medicalConditions) > 1000) {
+            sendErrorResponse('Invalid medical conditions', 'Medical conditions information cannot exceed 1000 characters', 400);
+        }
+        $updateFields[] = 'medicalConditions = ?';
+        $updateValues[] = $medicalConditions ?: null;
+    }
+    
+    // Medications validation
+    if (isset($input['medications'])) {
+        $medications = trim($input['medications']);
+        if (strlen($medications) > 1000) {
+            sendErrorResponse('Invalid medications', 'Medications information cannot exceed 1000 characters', 400);
+        }
+        $updateFields[] = 'medications = ?';
+        $updateValues[] = $medications ?: null;
+    }
+    
+    // Emergency contact name validation
+    if (isset($input['emergencyContactName'])) {
+        $emergencyContactName = trim($input['emergencyContactName']);
+        if (strlen($emergencyContactName) > 100) {
+            sendErrorResponse('Invalid emergency contact name', 'Emergency contact name cannot exceed 100 characters', 400);
+        }
+        $updateFields[] = 'emergencyContactName = ?';
+        $updateValues[] = $emergencyContactName ?: null;
+    }
+    
+    // Emergency contact phone validation
+    if (isset($input['emergencyContactPhone'])) {
+        $emergencyContactPhone = trim($input['emergencyContactPhone']);
+        if (!empty($emergencyContactPhone)) {
+            // Vietnamese phone number validation (10-11 digits, starts with 0)
+            if (!preg_match('/^0[0-9]{9,10}$/', $emergencyContactPhone)) {
+                sendErrorResponse('Invalid emergency contact phone', 'Emergency contact phone must be a valid Vietnamese number (10-11 digits starting with 0)', 400);
+            }
+        }
+        $updateFields[] = 'emergencyContactPhone = ?';
+        $updateValues[] = $emergencyContactPhone ?: null;
+    }
+    
+    // Emergency contact relation validation
+    if (isset($input['emergencyContactRelation'])) {
+        $emergencyContactRelation = trim($input['emergencyContactRelation']);
+        if (strlen($emergencyContactRelation) > 50) {
+            sendErrorResponse('Invalid emergency contact relation', 'Emergency contact relation cannot exceed 50 characters', 400);
+        }
+        $updateFields[] = 'emergencyContactRelation = ?';
+        $updateValues[] = $emergencyContactRelation ?: null;
+    }
+    
     // Check if there are any fields to update
     if (empty($updateFields)) {
         sendErrorResponse('No data to update', 'No valid fields provided for update', 400);
@@ -174,7 +254,9 @@ try {
     // Get updated user data
     $stmt = $pdo->prepare("
         SELECT id, fullName, email, phone, age, address, gender, role, active, 
-               isPremium, premiumEndDate, premiumTrialUsed, created_at, updated_at 
+               isPremium, premiumEndDate, premiumTrialUsed, created_at, updated_at,
+               bloodType, allergies, medicalConditions, medications, 
+               emergencyContactName, emergencyContactPhone, emergencyContactRelation
         FROM users 
         WHERE id = ?
     ");

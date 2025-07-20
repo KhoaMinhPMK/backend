@@ -44,7 +44,9 @@ try {
     // Get user data
     $stmt = $pdo->prepare("
         SELECT id, fullName, email, phone, age, address, gender, role, active, 
-               isPremium, premiumEndDate, premiumTrialUsed, created_at, updated_at 
+               isPremium, premiumEndDate, premiumTrialUsed, created_at, updated_at,
+               bloodType, allergies, medicalConditions, medications, 
+               emergencyContactName, emergencyContactPhone, emergencyContactRelation
         FROM users 
         WHERE id = ?
     ");
