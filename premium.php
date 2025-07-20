@@ -85,10 +85,46 @@ try {
         } else if (strpos($path, 'payment-methods') !== false) {
             // GET /premium/payment-methods
             $paymentMethods = [
-                ['id' => 'momo', 'name' => 'MoMo', 'icon' => 'momo-icon'],
-                ['id' => 'zalopay', 'name' => 'ZaloPay', 'icon' => 'zalopay-icon'],
-                ['id' => 'vnpay', 'name' => 'VNPay', 'icon' => 'vnpay-icon'],
-                ['id' => 'credit_card', 'name' => 'Thẻ tín dụng', 'icon' => 'credit-card-icon']
+                [
+                    'id' => 'credit_card',
+                    'type' => 'credit_card',
+                    'name' => 'Thẻ Tín dụng / Ghi nợ',
+                    'description' => 'Visa, Mastercard',
+                    'icon' => '💳',
+                    'enabled' => true,
+                    'isAvailable' => true,
+                    'processingFee' => 0
+                ],
+                [
+                    'id' => 'momo',
+                    'type' => 'e_wallet',
+                    'name' => 'Ví MoMo',
+                    'description' => 'Thanh toán qua MoMo',
+                    'icon' => '🐷',
+                    'enabled' => true,
+                    'isAvailable' => true,
+                    'processingFee' => 0
+                ],
+                [
+                    'id' => 'zalopay',
+                    'type' => 'e_wallet',
+                    'name' => 'ZaloPay',
+                    'description' => 'Thanh toán qua ZaloPay',
+                    'icon' => '🔵',
+                    'enabled' => true,
+                    'isAvailable' => true,
+                    'processingFee' => 0
+                ],
+                [
+                    'id' => 'vnpay',
+                    'type' => 'e_wallet',
+                    'name' => 'VNPay',
+                    'description' => 'Thanh toán qua VNPay',
+                    'icon' => '🏦',
+                    'enabled' => true,
+                    'isAvailable' => true,
+                    'processingFee' => 0
+                ]
             ];
             
             sendSuccessResponse($paymentMethods, 'Payment methods retrieved successfully');
