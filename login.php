@@ -37,10 +37,16 @@ try {
     // Validate password length
     validatePassword($password);
     
-    // Tìm user theo email
+    // Tìm user theo email với thông tin premium
     $stmt = $pdo->prepare("
-        SELECT id, fullName, email, password, phone, age, address, gender, role, active, created_at, updated_at 
-        FROM users WHERE email = ?
+        SELECT 
+            u.id, u.fullName, u.email, u.password, u.phone, u.age, u.address, u.gender, u.role, u.active,
+            u.isPremium, u.premiumStartDate, u.premiumEndDate, u.premiumPlanId, u.premiumTrialUsed,
+            pp.name as planName, pp.price as planPrice, pp.type as planType,
+            u.created_at, u.updated_at 
+        FROM users u
+        LEFT JOIN premium_plans pp ON u.premiumPlanId = pp.id
+        WHERE u.email = ?
     ");
     $stmt->execute([$email]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -65,6 +71,49 @@ try {
     
     // Remove password from user data
     unset($user['password']);
+    
+    // Format premium information
+    $premiumInfo = [
+        'isPremium' => (bool)$user['isPremium'],
+        'premiumStartDate' => $user['premiumStartDate'],
+        'premiumEndDate' => $user['premiumEndDate'],
+        'trialUsed' => (bool)$user['premiumTrialUsed'],
+        'daysRemaining' => 0,
+        'plan' => null
+    ];
+    
+    // Calculate days remaining if premium
+    if ($user['isPremium'] && $user['premiumEndDate']) {
+        $endDate = new DateTime($user['premiumEndDate']);
+        $now = new DateTime();
+        $interval = $now->diff($endDate);
+        
+        if ($endDate > $now) {
+            $premiumInfo['daysRemaining'] = $interval->days;
+        } else {
+            // Premium expired, update user status
+            $premiumInfo['isPremium'] = false;
+            $premiumInfo['daysRemaining'] = 0;
+        }
+    }
+    
+    // Add plan info if exists
+    if ($user['premiumPlanId']) {
+        $premiumInfo['plan'] = [
+            'id' => $user['premiumPlanId'],
+            'name' => $user['planName'],
+            'price' => $user['planPrice'],
+            'type' => $user['planType']
+        ];
+    }
+    
+    // Remove premium fields from main user object
+    unset($user['isPremium'], $user['premiumStartDate'], $user['premiumEndDate'], 
+          $user['premiumPlanId'], $user['premiumTrialUsed'], 
+          $user['planName'], $user['planPrice'], $user['planType']);
+    
+    // Add premium info to user object
+    $user['premium'] = $premiumInfo;
     
     // Convert timestamps to ISO format
     $user['createdAt'] = $user['created_at'];

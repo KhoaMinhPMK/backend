@@ -1,12 +1,17 @@
 -- =====================================================
--- DỮ LIỆU MẪU AN TOÀN - CHẠY TỪNG PHẦN MỘT
+-- DỮ LIỆU MẪU-- BƯỚC 9: Thêm payment transactions
+-- Chạy phần này sau khi có users, premium_plans và user_subscriptions
+INSERT INTO payment_transactions (userId, subscriptionId, planId, transactionCode, amount, currency, status, paymentMethod, type, description, paidAt, created_at, updated_at) VALUES
+(2, 1, 2, 'TXN_1702876543_2_2', 199000, 'VND', 'completed', 'momo', 'subscription', 'Thanh toán Gói Nâng Cao - monthly', NOW(), NOW(), NOW()),
+(2, 1, 2, 'TXN_1702776543_2_2', 199000, 'VND', 'completed', 'momo', 'renewal', 'Gia hạn Gói Nâng Cao - monthly', DATE_SUB(NOW(), INTERVAL 1 MONTH), DATE_SUB(NOW(), INTERVAL 1 MONTH), DATE_SUB(NOW(), INTERVAL 1 MONTH))
+ON DUPLICATE KEY UPDATE updated_at = NOW();OÀN - CHẠY TỪNG PHẦN MỘT
 -- =====================================================
 
--- BƯỚC 1: Thêm users trước
+-- BƯỚC 1: Thêm users trước với thông tin premium
 -- Chạy phần này trước tiên
-INSERT INTO users (id, fullName, email, password, phone, role, active, created_at, updated_at) VALUES
-(1, 'Nguyễn Văn A', 'user1@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '0123456789', 'elderly', TRUE, NOW(), NOW()),
-(2, 'Trần Thị B', 'user2@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '0987654321', 'relative', TRUE, NOW(), NOW())
+INSERT INTO users (id, fullName, email, password, phone, role, active, isPremium, premiumTrialUsed, created_at, updated_at) VALUES
+(1, 'Nguyễn Văn A', 'user1@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '0123456789', 'elderly', TRUE, FALSE, FALSE, NOW(), NOW()),
+(2, 'Trần Thị B', 'user2@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '0987654321', 'relative', TRUE, TRUE, TRUE, NOW(), NOW())
 ON DUPLICATE KEY UPDATE updated_at = NOW();
 
 -- BƯỚC 2: Thêm premium plans
@@ -56,10 +61,18 @@ INSERT INTO notifications (userId, type, title, message, isRead, priority, creat
 (2, 'info', 'Thông báo mới', 'Có tin nhắn mới từ người thân', FALSE, 'low', NOW(), NOW())
 ON DUPLICATE KEY UPDATE updated_at = NOW();
 
--- BƯỚC 8: Thêm user subscriptions
+-- BƯỚC 8: Thêm user subscriptions với premium status
 -- Chạy phần này sau khi có users và premium_plans
+-- User 2 có premium active
+UPDATE users SET 
+    isPremium = TRUE, 
+    premiumStartDate = NOW(), 
+    premiumEndDate = DATE_ADD(NOW(), INTERVAL 1 MONTH),
+    premiumPlanId = 2
+WHERE id = 2;
+
 INSERT INTO user_subscriptions (userId, planId, status, startDate, endDate, autoRenewal, paidAmount, paymentMethod, created_at, updated_at) VALUES
-(1, 2, 'active', NOW(), DATE_ADD(NOW(), INTERVAL 1 MONTH), TRUE, 199000, 'momo', NOW(), NOW())
+(2, 2, 'active', NOW(), DATE_ADD(NOW(), INTERVAL 1 MONTH), TRUE, 199000, 'momo', NOW(), NOW())
 ON DUPLICATE KEY UPDATE updated_at = NOW();
 
 -- BƯỚC 9: Thêm payment transactions

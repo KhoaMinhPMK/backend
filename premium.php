@@ -72,15 +72,113 @@ try {
             
         } else if (strpos($path, 'my-status') !== false) {
             // GET /premium/my-status
-            // Tạm thời return mock data
-            $mockStatus = [
-                'isPremium' => false,
-                'subscription' => null,
-                'plan' => null,
-                'daysRemaining' => 0
-            ];
+            // Cần userId từ token hoặc session - tạm thời dùng userId=1
+            $userId = 1; // TODO: Lấy từ auth token
             
-            sendSuccessResponse($mockStatus, 'Premium status retrieved successfully');
+            try {
+                // Gọi procedure cập nhật trạng thái premium
+                $stmt = $pdo->prepare("CALL UpdateUserPremiumStatus(?)");
+                $stmt->execute([$userId]);
+                $stmt->closeCursor();
+                
+                // Lấy thông tin premium status
+                $stmt = $pdo->prepare("
+                    SELECT 
+                        u.id,
+                        u.fullName,
+                        u.email,
+                        u.isPremium,
+                        u.premiumStartDate,
+                        u.premiumEndDate,
+                        u.premiumPlanId,
+                        u.premiumTrialUsed,
+                        u.premiumTrialEndDate,
+                        pp.name as planName,
+                        pp.price as planPrice,
+                        pp.type as planType,
+                        pp.features as planFeatures,
+                        us.id as subscriptionId,
+                        us.status as subscriptionStatus,
+                        us.autoRenewal,
+                        us.nextPaymentDate,
+                        CASE 
+                            WHEN u.isPremium = TRUE AND u.premiumEndDate > NOW() THEN 
+                                DATEDIFF(u.premiumEndDate, NOW())
+                            ELSE 0
+                        END as daysRemaining,
+                        CASE 
+                            WHEN u.premiumTrialEndDate > NOW() AND u.premiumTrialUsed = TRUE THEN TRUE
+                            ELSE FALSE
+                        END as isTrialActive
+                    FROM users u
+                    LEFT JOIN premium_plans pp ON u.premiumPlanId = pp.id
+                    LEFT JOIN user_subscriptions us ON u.id = us.userId AND us.status = 'active'
+                    WHERE u.id = ?
+                ");
+                $stmt->execute([$userId]);
+                $status = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if (!$status) {
+                    throw new Exception('User not found');
+                }
+                
+                // Format features
+                if (!empty($status['planFeatures'])) {
+                    $status['planFeatures'] = json_decode($status['planFeatures'], true) ?: [];
+                }
+                
+                // Format response
+                $response = [
+                    'userId' => $status['id'],
+                    'userName' => $status['fullName'],
+                    'userEmail' => $status['email'],
+                    'isPremium' => (bool)$status['isPremium'],
+                    'premiumStartDate' => $status['premiumStartDate'],
+                    'premiumEndDate' => $status['premiumEndDate'],
+                    'daysRemaining' => (int)$status['daysRemaining'],
+                    'isTrialActive' => (bool)$status['isTrialActive'],
+                    'trialUsed' => (bool)$status['premiumTrialUsed'],
+                    'subscription' => null,
+                    'plan' => null
+                ];
+                
+                // Add subscription info if exists
+                if ($status['subscriptionId']) {
+                    $response['subscription'] = [
+                        'id' => $status['subscriptionId'],
+                        'status' => $status['subscriptionStatus'],
+                        'autoRenewal' => (bool)$status['autoRenewal'],
+                        'nextPaymentDate' => $status['nextPaymentDate']
+                    ];
+                }
+                
+                // Add plan info if exists
+                if ($status['premiumPlanId']) {
+                    $response['plan'] = [
+                        'id' => $status['premiumPlanId'],
+                        'name' => $status['planName'],
+                        'price' => $status['planPrice'],
+                        'type' => $status['planType'],
+                        'features' => $status['planFeatures'] ?: []
+                    ];
+                }
+                
+                sendSuccessResponse($response, 'Premium status retrieved successfully');
+                
+            } catch (PDOException $e) {
+                // Fallback to mock data if database issues
+                $mockStatus = [
+                    'userId' => $userId,
+                    'isPremium' => false,
+                    'subscription' => null,
+                    'plan' => null,
+                    'daysRemaining' => 0,
+                    'isTrialActive' => false,
+                    'trialUsed' => false
+                ];
+                
+                sendSuccessResponse($mockStatus, 'Premium status retrieved successfully (fallback)');
+            }
             
         } else if (strpos($path, 'payment-methods') !== false) {
             // GET /premium/payment-methods
@@ -131,8 +229,40 @@ try {
             
         } else if (strpos($path, 'my-transactions') !== false) {
             // GET /premium/payment/my-transactions
-            // Tạm thời return empty array
-            sendSuccessResponse([], 'Transactions retrieved successfully');
+            $userId = 1; // TODO: Lấy từ auth token
+            
+            try {
+                $stmt = $pdo->prepare("
+                    SELECT 
+                        pt.*,
+                        pp.name as planName,
+                        us.status as subscriptionStatus
+                    FROM payment_transactions pt
+                    LEFT JOIN premium_plans pp ON pt.planId = pp.id
+                    LEFT JOIN user_subscriptions us ON pt.subscriptionId = us.id
+                    WHERE pt.userId = ?
+                    ORDER BY pt.created_at DESC
+                    LIMIT 50
+                ");
+                $stmt->execute([$userId]);
+                $transactions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                // Format transactions
+                foreach ($transactions as &$transaction) {
+                    if (!empty($transaction['customerInfo'])) {
+                        $transaction['customerInfo'] = json_decode($transaction['customerInfo'], true);
+                    }
+                    if (!empty($transaction['gatewayResponse'])) {
+                        $transaction['gatewayResponse'] = json_decode($transaction['gatewayResponse'], true);
+                    }
+                }
+                
+                sendSuccessResponse($transactions, 'Transactions retrieved successfully');
+                
+            } catch (PDOException $e) {
+                // Fallback to empty array
+                sendSuccessResponse([], 'Transactions retrieved successfully (no data)');
+            }
             
         } else {
             sendErrorResponse('Endpoint not found', 'Invalid premium endpoint', 404);
@@ -150,61 +280,159 @@ try {
                 throw new Exception('Plan ID and payment method are required');
             }
             
-            $planId = $input['planId'];
+            $planId = (int)$input['planId'];
             $paymentMethod = $input['paymentMethod'];
+            $userId = 1; // TODO: Lấy từ auth token
             
-            // Lấy thông tin plan
-            $plan = null;
+            // Validate payment method
+            $validPaymentMethods = ['momo', 'zalopay', 'vnpay', 'credit_card'];
+            if (!in_array($paymentMethod, $validPaymentMethods)) {
+                throw new Exception('Invalid payment method');
+            }
+            
             try {
+                // Bắt đầu transaction
+                $pdo->beginTransaction();
+                
+                // Lấy thông tin plan
                 $stmt = $pdo->prepare("SELECT * FROM premium_plans WHERE id = ? AND isActive = TRUE");
                 $stmt->execute([$planId]);
                 $plan = $stmt->fetch(PDO::FETCH_ASSOC);
-            } catch (PDOException $e) {
-                // Fallback to mock plan
-                $plan = [
-                    'id' => $planId,
-                    'name' => 'Gói Premium',
-                    'price' => 99000,
-                    'duration' => 30
+                
+                if (!$plan) {
+                    throw new Exception('Plan not found or inactive');
+                }
+                
+                $amount = $plan['price'];
+                $planName = $plan['name'];
+                
+                // Generate unique transaction code
+                $transactionCode = 'TXN_' . time() . '_' . $userId . '_' . $planId;
+                
+                // Tạo subscription bằng stored procedure
+                $stmt = $pdo->prepare("CALL CreateSubscription(?, ?, ?, ?)");
+                $stmt->execute([$userId, $planId, $paymentMethod, $amount]);
+                $subscriptionResult = $stmt->fetch(PDO::FETCH_ASSOC);
+                $subscriptionId = $subscriptionResult['subscriptionId'];
+                $startDate = $subscriptionResult['startDate'];
+                $endDate = $subscriptionResult['endDate'];
+                $stmt->closeCursor();
+                
+                // Tạo payment transaction
+                $description = "Thanh toán {$planName} - Gói {$plan['type']}";
+                $stmt = $pdo->prepare("
+                    INSERT INTO payment_transactions (
+                        userId, subscriptionId, planId, transactionCode, 
+                        amount, currency, status, paymentMethod, type, 
+                        description, paidAt
+                    ) VALUES (?, ?, ?, ?, ?, 'VND', 'completed', ?, 'subscription', ?, NOW())
+                ");
+                $stmt->execute([
+                    $userId, $subscriptionId, $planId, $transactionCode,
+                    $amount, $paymentMethod, $description
+                ]);
+                
+                $transactionId = $pdo->lastInsertId();
+                
+                // Commit transaction
+                $pdo->commit();
+                
+                // Lấy thông tin chi tiết để response
+                $stmt = $pdo->prepare("
+                    SELECT 
+                        pt.*,
+                        us.status as subscriptionStatus,
+                        us.startDate,
+                        us.endDate,
+                        us.autoRenewal,
+                        pp.name as planName,
+                        pp.duration
+                    FROM payment_transactions pt
+                    JOIN user_subscriptions us ON pt.subscriptionId = us.id
+                    JOIN premium_plans pp ON pt.planId = pp.id
+                    WHERE pt.id = ?
+                ");
+                $stmt->execute([$transactionId]);
+                $transactionData = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                $response = [
+                    'success' => true,
+                    'transaction' => [
+                        'id' => $transactionData['id'],
+                        'transactionCode' => $transactionData['transactionCode'],
+                        'amount' => (float)$transactionData['amount'],
+                        'currency' => $transactionData['currency'],
+                        'status' => $transactionData['status'],
+                        'paymentMethod' => $transactionData['paymentMethod'],
+                        'type' => $transactionData['type'],
+                        'description' => $transactionData['description'],
+                        'paidAt' => $transactionData['paidAt'],
+                        'createdAt' => $transactionData['created_at']
+                    ],
+                    'subscription' => [
+                        'id' => $subscriptionId,
+                        'userId' => $userId,
+                        'planId' => $planId,
+                        'status' => $transactionData['subscriptionStatus'],
+                        'startDate' => $transactionData['startDate'],
+                        'endDate' => $transactionData['endDate'],
+                        'autoRenewal' => (bool)$transactionData['autoRenewal'],
+                        'paidAmount' => (float)$amount,
+                        'paymentMethod' => $paymentMethod
+                    ],
+                    'plan' => [
+                        'id' => $plan['id'],
+                        'name' => $plan['name'],
+                        'price' => (float)$plan['price'],
+                        'duration' => (int)$plan['duration'],
+                        'type' => $plan['type']
+                    ],
+                    'message' => 'Purchase completed successfully'
                 ];
+                
+                sendSuccessResponse($response, 'Premium purchase completed successfully');
+                
+            } catch (PDOException $e) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                error_log("Purchase Error: " . $e->getMessage());
+                throw new Exception('Payment processing failed. Please try again.');
+            } catch (Exception $e) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                throw $e;
             }
             
-            $amount = $plan ? $plan['price'] : 99000;
-            $planName = $plan ? $plan['name'] : 'Gói Premium';
+        } else if (strpos($path, 'activate-trial') !== false) {
+            // POST /premium/activate-trial
+            $userId = 1; // TODO: Lấy từ auth token
+            $trialDays = 7; // Default 7 days trial
             
-            // Tạm thời return mock success với format đúng
-            $mockResponse = [
-                'success' => true,
-                'transaction' => [
-                    'id' => 1,
-                    'transactionCode' => 'TXN_' . time(),
-                    'amount' => $amount,
-                    'currency' => 'VND',
-                    'status' => 'completed',
-                    'paymentMethod' => $paymentMethod,
-                    'type' => 'subscription',
-                    'description' => "Thanh toán {$planName}",
-                    'paidAt' => date('Y-m-d H:i:s'),
-                    'createdAt' => date('Y-m-d H:i:s'),
-                    'updatedAt' => date('Y-m-d H:i:s')
-                ],
-                'subscription' => [
-                    'id' => 1,
-                    'userId' => 1,
-                    'planId' => $planId,
-                    'status' => 'active',
-                    'startDate' => date('Y-m-d H:i:s'),
-                    'endDate' => date('Y-m-d H:i:s', strtotime('+1 month')),
-                    'autoRenewal' => true,
-                    'paidAmount' => $amount,
-                    'paymentMethod' => $paymentMethod,
-                    'createdAt' => date('Y-m-d H:i:s'),
-                    'updatedAt' => date('Y-m-d H:i:s')
-                ],
-                'message' => 'Purchase completed successfully'
-            ];
-            
-            sendSuccessResponse($mockResponse, 'Purchase completed successfully');
+            try {
+                $stmt = $pdo->prepare("CALL ActivatePremiumTrial(?, ?)");
+                $stmt->execute([$userId, $trialDays]);
+                $result = $stmt->fetch(PDO::FETCH_ASSOC);
+                $stmt->closeCursor();
+                
+                $response = [
+                    'success' => true,
+                    'isPremium' => (bool)$result['isPremium'],
+                    'premiumEndDate' => $result['premiumEndDate'],
+                    'trialEndDate' => $result['premiumTrialEndDate'],
+                    'trialDays' => $trialDays,
+                    'message' => "Premium trial activated for {$trialDays} days"
+                ];
+                
+                sendSuccessResponse($response, 'Premium trial activated successfully');
+                
+            } catch (PDOException $e) {
+                if (strpos($e->getMessage(), 'Premium trial already used') !== false) {
+                    throw new Exception('Premium trial has already been used for this account');
+                }
+                throw new Exception('Failed to activate premium trial');
+            }
             
         } else {
             sendErrorResponse('Endpoint not found', 'Invalid premium endpoint', 404);
@@ -212,19 +440,53 @@ try {
         
     } else if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
         if (strpos($path, 'cancel') !== false) {
-            // PUT /premium/subscription/{id}/cancel
+            // PUT /premium/subscription/cancel
             if (!$input) {
                 throw new Exception('Invalid JSON input');
             }
             
-            // Tạm thời return mock success
-            $mockResponse = [
-                'id' => 1,
-                'status' => 'cancelled',
-                'cancelReason' => $input['cancelReason'] ?? 'User cancelled'
-            ];
+            $userId = 1; // TODO: Lấy từ auth token
+            $cancelReason = $input['cancelReason'] ?? 'User cancelled';
             
-            sendSuccessResponse($mockResponse, 'Subscription cancelled successfully');
+            try {
+                // Tìm subscription active
+                $stmt = $pdo->prepare("
+                    SELECT id FROM user_subscriptions 
+                    WHERE userId = ? AND status = 'active' 
+                    ORDER BY created_at DESC LIMIT 1
+                ");
+                $stmt->execute([$userId]);
+                $subscription = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if (!$subscription) {
+                    throw new Exception('No active subscription found');
+                }
+                
+                // Hủy subscription
+                $stmt = $pdo->prepare("
+                    UPDATE user_subscriptions 
+                    SET status = 'cancelled', cancelledAt = NOW(), cancelReason = ?, autoRenewal = FALSE 
+                    WHERE id = ?
+                ");
+                $stmt->execute([$cancelReason, $subscription['id']]);
+                
+                // Cập nhật trạng thái premium user
+                $stmt = $pdo->prepare("CALL UpdateUserPremiumStatus(?)");
+                $stmt->execute([$userId]);
+                $stmt->closeCursor();
+                
+                $response = [
+                    'id' => $subscription['id'],
+                    'status' => 'cancelled',
+                    'cancelReason' => $cancelReason,
+                    'cancelledAt' => date('Y-m-d H:i:s')
+                ];
+                
+                sendSuccessResponse($response, 'Subscription cancelled successfully');
+                
+            } catch (PDOException $e) {
+                throw new Exception('Failed to cancel subscription');
+            }
             
         } else {
             sendErrorResponse('Endpoint not found', 'Invalid premium endpoint', 404);

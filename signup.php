@@ -64,8 +64,8 @@ try {
     
     // Insert user into database
     $stmt = $pdo->prepare("
-        INSERT INTO users (fullName, email, password, phone, role, active, created_at, updated_at) 
-        VALUES (?, ?, ?, ?, 'elderly', TRUE, NOW(), NOW())
+        INSERT INTO users (fullName, email, password, phone, role, active, isPremium, premiumTrialUsed, created_at, updated_at) 
+        VALUES (?, ?, ?, ?, 'elderly', TRUE, FALSE, FALSE, NOW(), NOW())
     ");
     
     $stmt->execute([$fullName, $email, $hashedPassword, $phone]);
@@ -73,7 +73,7 @@ try {
     
     // Get user data for response
     $stmt = $pdo->prepare("
-        SELECT id, fullName, email, phone, age, address, gender, role, active, created_at, updated_at 
+        SELECT id, fullName, email, phone, age, address, gender, role, active, isPremium, premiumEndDate, premiumTrialUsed, created_at, updated_at 
         FROM users WHERE id = ?
     ");
     $stmt->execute([$userId]);

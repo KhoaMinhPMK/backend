@@ -1,146 +1,86 @@
-# Premium API Documentation
+# VieGrand Premium API Documentation
 
 ## Tổng quan
-Hệ thống Premium API cung cấp các endpoint để quản lý gói premium, thanh toán và trạng thái subscription của người dùng.
 
-## Các file API
+API Premium cho phép quản lý các gói premium, subscription và payment cho ứng dụng VieGrand.
 
-### 1. `premium_api.php` - API chính cho Premium
-**Base URL:** `/premium_api.php`
+## Endpoints
 
-#### Endpoints:
+### 1. Lấy danh sách gói Premium
+```
+GET /premium/plans
+```
 
-##### GET `/plans`
-Lấy danh sách các gói premium có sẵn
+**Response:**
 ```json
 {
   "success": true,
+  "message": "Premium plans retrieved successfully",
   "data": [
     {
       "id": 1,
       "name": "Gói Cơ Bản",
-      "description": "Gói dành cho người mới bắt đầu",
+      "description": "Gói premium cơ bản với các tính năng cần thiết",
       "price": 99000,
       "duration": 30,
       "type": "monthly",
-      "features": ["Thông báo cơ bản", "Hỗ trợ 24/7"],
+      "features": ["Truy cập không giới hạn", "Hỗ trợ 24/7", "Không quảng cáo"],
       "isActive": true,
-      "sortOrder": 1,
-      "isRecommended": false
+      "isRecommended": false,
+      "discountPercent": 0
     }
-  ],
-  "message": "Thành công"
+  ]
 }
 ```
 
-##### GET `/my-status`
-Lấy trạng thái premium của user hiện tại
+### 2. Lấy trạng thái Premium của User
+```
+GET /premium/my-status
+```
+
+**Response:**
 ```json
 {
   "success": true,
+  "message": "Premium status retrieved successfully",
   "data": {
+    "userId": 1,
+    "userName": "Nguyễn Văn A",
+    "userEmail": "user1@example.com",
     "isPremium": true,
+    "premiumStartDate": "2024-12-19 10:00:00",
+    "premiumEndDate": "2025-01-19 10:00:00",
+    "daysRemaining": 30,
+    "isTrialActive": false,
+    "trialUsed": false,
     "subscription": {
       "id": 1,
       "status": "active",
-      "startDate": "2024-01-01 00:00:00",
-      "endDate": "2024-02-01 00:00:00",
       "autoRenewal": true,
-      "paidAmount": 199000,
-      "paymentMethod": "momo"
+      "nextPaymentDate": "2025-01-19 10:00:00"
     },
     "plan": {
       "id": 2,
-      "name": "Gói Premium",
-      "description": "Gói cao cấp với nhiều tính năng",
+      "name": "Gói Nâng Cao",
       "price": 199000,
       "type": "monthly",
-      "features": ["Thông báo nâng cao", "Hỗ trợ 24/7", "Báo cáo chi tiết"]
-    },
-    "daysRemaining": 15
-  },
-  "message": "Thành công"
-}
-```
-
-##### POST `/purchase`
-Mua gói premium
-```json
-// Request
-{
-  "planId": 2,
-  "paymentMethod": "momo"
-}
-
-// Response
-{
-  "success": true,
-  "data": {
-    "success": true,
-    "subscription": {
-      "id": 1,
-      "userId": 1,
-      "planId": 2,
-      "status": "active",
-      "startDate": "2024-01-01 00:00:00",
-      "endDate": "2024-02-01 00:00:00",
-      "autoRenewal": true,
-      "paidAmount": 199000,
-      "paymentMethod": "momo"
-    },
-    "transaction": {
-      "id": 1,
-      "transactionCode": "TXN_1704067200_1234",
-      "amount": 199000,
-      "status": "completed",
-      "paymentMethod": "momo",
-      "type": "subscription"
-    },
-    "message": "Thanh toán thành công"
-  },
-  "message": "Thành công"
-}
-```
-
-##### GET `/transactions`
-Lấy lịch sử giao dịch của user
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": 1,
-      "transactionCode": "TXN_1704067200_1234",
-      "amount": 199000,
-      "status": "completed",
-      "paymentMethod": "momo",
-      "type": "subscription",
-      "description": "Thanh toán gói Premium",
-      "createdAt": "2024-01-01 00:00:00",
-      "planName": "Gói Premium",
-      "planType": "monthly"
+      "features": ["Tất cả tính năng cơ bản", "Tùy chỉnh giao diện"]
     }
-  ],
-  "message": "Thành công"
+  }
 }
 ```
 
-##### GET `/payment-methods`
-Lấy danh sách phương thức thanh toán
+### 3. Lấy phương thức thanh toán
+```
+GET /premium/payment-methods
+```
+
+**Response:**
 ```json
 {
   "success": true,
+  "message": "Payment methods retrieved successfully",
   "data": [
-    {
-      "id": "credit_card",
-      "type": "credit_card",
-      "name": "Thẻ Tín dụng / Ghi nợ",
-      "description": "Visa, Mastercard, JCB",
-      "icon": "💳",
-      "enabled": true,
-      "isAvailable": true,
-      "processingFee": 0
-    },
     {
       "id": "momo",
       "type": "e_wallet",
@@ -151,226 +91,260 @@ Lấy danh sách phương thức thanh toán
       "isAvailable": true,
       "processingFee": 0
     }
-  ],
-  "message": "Thành công"
+  ]
 }
 ```
 
-##### POST `/cancel-subscription`
-Hủy gói premium
-```json
-// Request
-{
-  "reason": "Không cần sử dụng nữa"
-}
+### 4. Lấy lịch sử giao dịch
+```
+GET /premium/payment/my-transactions
+```
 
-// Response
+**Response:**
+```json
 {
   "success": true,
-  "data": {
-    "message": "Đã hủy gói premium thành công"
-  },
-  "message": "Thành công"
+  "message": "Transactions retrieved successfully",
+  "data": [
+    {
+      "id": 1,
+      "transactionCode": "TXN_1702876543_2_2",
+      "amount": 199000,
+      "currency": "VND",
+      "status": "completed",
+      "paymentMethod": "momo",
+      "type": "subscription",
+      "description": "Thanh toán Gói Nâng Cao - monthly",
+      "paidAt": "2024-12-19 10:00:00",
+      "planName": "Gói Nâng Cao",
+      "subscriptionStatus": "active"
+    }
+  ]
 }
 ```
 
-##### POST `/retry-payment`
-Thử lại thanh toán
-```json
-// Request
-{
-  "transactionId": 1
-}
+### 5. Mua gói Premium
+```
+POST /premium/purchase
+Content-Type: application/json
 
-// Response
+{
+  "planId": 2,
+  "paymentMethod": "momo"
+}
+```
+
+**Response:**
+```json
 {
   "success": true,
+  "message": "Premium purchase completed successfully",
   "data": {
     "success": true,
-    "paymentUrl": "https://payment-gateway.example.com/retry/1",
-    "message": "Đã tạo link thanh toán mới"
-  },
-  "message": "Thành công"
-}
-```
-
-### 2. `update_user_premium.php` - Cập nhật premium cho user
-**Base URL:** `/update_user_premium.php`
-
-#### POST `/`
-Cập nhật thông tin premium cho user cụ thể
-```json
-// Request
-{
-  "userId": 1,
-  "planId": 2,
-  "paymentMethod": "momo",
-  "autoRenewal": true
-}
-
-// Response
-{
-  "success": true,
-  "data": {
+    "transaction": {
+      "id": 1,
+      "transactionCode": "TXN_1702876543_1_2",
+      "amount": 199000,
+      "currency": "VND",
+      "status": "completed",
+      "paymentMethod": "momo",
+      "type": "subscription",
+      "description": "Thanh toán Gói Nâng Cao - monthly",
+      "paidAt": "2024-12-19 10:00:00"
+    },
     "subscription": {
       "id": 1,
       "userId": 1,
       "planId": 2,
       "status": "active",
-      "startDate": "2024-01-01 00:00:00",
-      "endDate": "2024-02-01 00:00:00",
-      "planName": "Gói Premium",
-      "planDescription": "Gói cao cấp với nhiều tính năng",
-      "planType": "monthly"
+      "startDate": "2024-12-19 10:00:00",
+      "endDate": "2025-01-19 10:00:00",
+      "autoRenewal": true,
+      "paidAmount": 199000,
+      "paymentMethod": "momo"
     },
-    "transaction": {
-      "id": 1,
-      "transactionCode": "TXN_1704067200_1234",
-      "amount": 199000,
-      "status": "completed"
+    "plan": {
+      "id": 2,
+      "name": "Gói Nâng Cao",
+      "price": 199000,
+      "duration": 30,
+      "type": "monthly"
     },
-    "message": "Premium subscription created successfully"
-  },
-  "message": "Premium subscription updated successfully"
-}
-```
-
-### 3. `check_premium_status.php` - Kiểm tra trạng thái premium
-**Base URL:** `/check_premium_status.php`
-
-#### GET `/`
-Kiểm tra và cập nhật trạng thái premium cho tất cả users
-```json
-{
-  "success": true,
-  "data": {
-    "expiredCount": 5,
-    "stats": {
-      "totalUsers": 100,
-      "activePremiumUsers": 45,
-      "expiredUsers": 30,
-      "cancelledUsers": 5
-    },
-    "users": [
-      {
-        "id": 1,
-        "fullName": "Nguyễn Văn A",
-        "email": "user@example.com",
-        "role": "elderly",
-        "subscriptionId": 1,
-        "subscriptionStatus": "active",
-        "startDate": "2024-01-01 00:00:00",
-        "endDate": "2024-02-01 00:00:00",
-        "planName": "Gói Premium",
-        "planType": "monthly",
-        "daysRemaining": 15,
-        "isPremium": true
-      }
-    ],
-    "message": "Premium status checked and updated successfully"
-  },
-  "message": "Premium status checked successfully"
-}
-```
-
-### 4. `setup_premium_data.php` - Thiết lập dữ liệu premium
-**Base URL:** `/setup_premium_data.php`
-
-#### POST `/`
-Thiết lập premium cho user hoặc tất cả users
-```json
-// Request - Cho user cụ thể
-{
-  "userId": 1,
-  "planId": 2,
-  "paymentMethod": "momo"
-}
-
-// Request - Cho tất cả users
-{
-  "planId": 2,
-  "paymentMethod": "momo"
-}
-
-// Response
-{
-  "success": true,
-  "data": {
-    "totalUsers": 10,
-    "planName": "Gói Premium",
-    "users": [
-      {
-        "userId": 1,
-        "userName": "Nguyễn Văn A",
-        "subscriptionId": 1,
-        "planName": "Gói Premium",
-        "endDate": "2024-02-01 00:00:00"
-      }
-    ],
-    "message": "Premium setup completed for 10 users"
-  },
-  "message": "Premium data setup completed successfully"
-}
-```
-
-## Authentication
-Tất cả các API đều yêu cầu authentication thông qua JWT token trong header:
-```
-Authorization: Bearer <token>
-```
-
-## Error Handling
-Tất cả API đều trả về response theo format:
-```json
-{
-  "success": false,
-  "error": {
-    "message": "Error message",
-    "code": 400
+    "message": "Purchase completed successfully"
   }
 }
 ```
 
+### 6. Kích hoạt Premium Trial
+```
+POST /premium/activate-trial
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Premium trial activated successfully",
+  "data": {
+    "success": true,
+    "isPremium": true,
+    "premiumEndDate": "2024-12-26 10:00:00",
+    "trialEndDate": "2024-12-26 10:00:00",
+    "trialDays": 7,
+    "message": "Premium trial activated for 7 days"
+  }
+}
+```
+
+### 7. Hủy Subscription
+```
+PUT /premium/subscription/cancel
+Content-Type: application/json
+
+{
+  "cancelReason": "Không cần thiết nữa"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Subscription cancelled successfully",
+  "data": {
+    "id": 1,
+    "status": "cancelled",
+    "cancelReason": "Không cần thiết nữa",
+    "cancelledAt": "2024-12-19 10:00:00"
+  }
+}
+```
+
+## Admin APIs
+
+### 1. Kiểm tra subscription hết hạn
+```
+POST /premium/admin/check-expired
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Subscription status check completed",
+  "data": {
+    "success": true,
+    "expiredCount": 5,
+    "checkedAt": "2024-12-19 10:00:00",
+    "message": "Checked and updated 5 expired subscriptions"
+  }
+}
+```
+
+### 2. Cập nhật trạng thái Premium user
+```
+POST /premium/admin/update-status
+Content-Type: application/json
+
+{
+  "userId": 1
+}
+```
+
+### 3. Thống kê Premium
+```
+GET /premium/admin/stats
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Premium statistics retrieved successfully",
+  "data": {
+    "totalPremiumUsers": 125,
+    "activeSubscriptions": 98,
+    "totalRevenue": 24750000,
+    "expiringSoon": 12,
+    "topPlans": [
+      {
+        "name": "Gói Nâng Cao",
+        "price": 199000,
+        "subscriptionCount": 45,
+        "totalRevenue": 8955000
+      }
+    ]
+  }
+}
+```
+
+## Error Responses
+
+Khi có lỗi, API sẽ trả về format:
+
+```json
+{
+  "success": false,
+  "error": "Error message",
+  "details": "Detailed error information",
+  "timestamp": "2024-12-19T10:00:00Z"
+}
+```
+
+## Status Codes
+
+- `200` - Thành công
+- `400` - Lỗi request (thiếu tham số, dữ liệu không hợp lệ)
+- `404` - Endpoint không tồn tại
+- `405` - Method không được phép
+- `500` - Lỗi server
+
+## Authentication
+
+Hiện tại API chưa có authentication hoàn chỉnh. Tạm thời sử dụng userId cố định = 1 để test.
+
+Cần implement JWT token authentication trong tương lai.
+
 ## Database Schema
-Hệ thống sử dụng các bảng chính:
-- `users` - Thông tin người dùng
-- `premium_plans` - Gói premium
-- `user_subscriptions` - Đăng ký premium
-- `payment_transactions` - Giao dịch thanh toán
 
-## Cách sử dụng
+### Bảng Users (đã cập nhật)
+- `isPremium`: BOOLEAN - Trạng thái premium
+- `premiumStartDate`: TIMESTAMP - Ngày bắt đầu premium
+- `premiumEndDate`: TIMESTAMP - Ngày hết hạn premium
+- `premiumPlanId`: INT - ID của plan premium
+- `premiumTrialUsed`: BOOLEAN - Đã dùng trial chưa
+- `premiumTrialEndDate`: TIMESTAMP - Ngày hết hạn trial
 
-### 1. Thiết lập ban đầu
+### Stored Procedures
+- `CreateSubscription(userId, planId, paymentMethod, paidAmount)`: Tạo subscription mới
+- `UpdateUserPremiumStatus(userId)`: Cập nhật trạng thái premium user
+- `CheckExpiredSubscriptions()`: Kiểm tra và cập nhật subscription hết hạn
+- `ActivatePremiumTrial(userId, trialDays)`: Kích hoạt premium trial
+
+## Setup và Deployment
+
+1. Chạy `database_schema.sql` để tạo database structure
+2. Chạy `sample_data_safe.sql` để thêm dữ liệu mẫu
+3. Cấu hình database connection trong `config.php`
+4. Deploy các file PHP lên server
+5. Setup cron job chạy `POST /premium/admin/check-expired` hàng ngày để kiểm tra subscription hết hạn
+
+## Testing
+
+Sử dụng Postman hoặc curl để test các endpoint:
+
 ```bash
-# Chạy database schema
-mysql -u username -p database_name < database_schema.sql
+# Test lấy plans
+curl -X GET http://localhost/premium/plans
 
-# Thiết lập premium cho tất cả users
-curl -X POST http://localhost/premium/setup_premium_data.php \
+# Test mua gói premium
+curl -X POST http://localhost/premium/purchase \
   -H "Content-Type: application/json" \
   -d '{"planId": 2, "paymentMethod": "momo"}'
+
+# Test kích hoạt trial
+curl -X POST http://localhost/premium/activate-trial
+
+# Test lấy trạng thái premium
+curl -X GET http://localhost/premium/my-status
 ```
-
-### 2. Kiểm tra trạng thái
-```bash
-# Kiểm tra trạng thái premium
-curl -X GET http://localhost/premium/check_premium_status.php
-```
-
-### 3. Sử dụng trong app
-```javascript
-// Lấy trạng thái premium
-const status = await premiumAPI.getMyPremiumStatus();
-
-// Mua gói premium
-const result = await premiumAPI.purchase(2, 'momo');
-
-// Lấy lịch sử giao dịch
-const transactions = await premiumAPI.getMyTransactions();
-```
-
-## Lưu ý
-- Tất cả API đều có CORS headers để hỗ trợ cross-origin requests
-- Database sử dụng UTF-8 để hỗ trợ tiếng Việt
-- Các giao dịch thanh toán được lưu trữ đầy đủ để audit
-- Hệ thống tự động cập nhật trạng thái subscription hết hạn 
