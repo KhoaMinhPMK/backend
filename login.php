@@ -132,6 +132,16 @@ try {
     $user['updatedAt'] = $user['updated_at'];
     unset($user['created_at'], $user['updated_at']);
     
+    // Convert gender to Vietnamese for frontend display
+    if ($user['gender']) {
+        $genderDisplayMap = [
+            'male' => 'Nam',
+            'female' => 'Nữ', 
+            'other' => 'Khác'
+        ];
+        $user['gender'] = $genderDisplayMap[$user['gender']] ?? $user['gender'];
+    }
+    
     // Success response
     sendSuccessResponse([
         'access_token' => $token,

@@ -126,11 +126,30 @@ try {
     // Gender validation
     if (isset($input['gender'])) {
         $gender = trim($input['gender']);
-        if (!empty($gender) && !in_array(strtolower($gender), ['nam', 'nữ', 'male', 'female', 'khác', 'other'])) {
-            sendErrorResponse('Invalid gender', 'Gender must be one of: Nam, Nữ, Khác', 400);
+        if (!empty($gender)) {
+            // Convert Vietnamese to English and validate
+            $genderMap = [
+                'nam' => 'male',
+                'nữ' => 'female', 
+                'nu' => 'female',
+                'khác' => 'other',
+                'khac' => 'other',
+                'male' => 'male',
+                'female' => 'female',
+                'other' => 'other'
+            ];
+            
+            $genderLower = strtolower($gender);
+            if (!array_key_exists($genderLower, $genderMap)) {
+                sendErrorResponse('Invalid gender', 'Gender must be one of: Nam, Nữ, Khác, male, female, other', 400);
+            }
+            
+            $gender = $genderMap[$genderLower];
+        } else {
+            $gender = null;
         }
         $updateFields[] = 'gender = ?';
-        $updateValues[] = $gender ?: null;
+        $updateValues[] = $gender;
     }
     
     // Check if there are any fields to update
@@ -170,6 +189,16 @@ try {
     $updatedUser['createdAt'] = $updatedUser['created_at'];
     $updatedUser['updatedAt'] = $updatedUser['updated_at'];
     unset($updatedUser['created_at'], $updatedUser['updated_at']);
+    
+    // Convert gender back to Vietnamese for frontend
+    if ($updatedUser['gender']) {
+        $genderDisplayMap = [
+            'male' => 'Nam',
+            'female' => 'Nữ', 
+            'other' => 'Khác'
+        ];
+        $updatedUser['gender'] = $genderDisplayMap[$updatedUser['gender']] ?? $updatedUser['gender'];
+    }
     
     // Success response
     sendSuccessResponse($updatedUser, 'Profile updated successfully');
