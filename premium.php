@@ -271,8 +271,17 @@ try {
     } else if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (strpos($path, 'purchase') !== false) {
             // POST /premium/purchase
+            
+            // Debug input
+            $rawInput = file_get_contents('php://input');
+            error_log("Raw input: " . $rawInput);
+            
             if (!$input) {
-                throw new Exception('Invalid JSON input');
+                // Try alternative method to get POST data
+                $input = $_POST;
+                if (empty($input)) {
+                    throw new Exception('Invalid JSON input or no data received');
+                }
             }
             
             // Validate required fields
@@ -291,9 +300,6 @@ try {
             }
             
             try {
-                // Bắt đầu transaction
-                $pdo->beginTransaction();
-                
                 // Lấy thông tin plan
                 $stmt = $pdo->prepare("SELECT * FROM premium_plans WHERE id = ? AND isActive = TRUE");
                 $stmt->execute([$planId]);
@@ -309,16 +315,34 @@ try {
                 // Generate unique transaction code
                 $transactionCode = 'TXN_' . time() . '_' . $userId . '_' . $planId;
                 
-                // Tạo subscription bằng stored procedure
-                $stmt = $pdo->prepare("CALL CreateSubscription(?, ?, ?, ?)");
-                $stmt->execute([$userId, $planId, $paymentMethod, $amount]);
-                $subscriptionResult = $stmt->fetch(PDO::FETCH_ASSOC);
-                $subscriptionId = $subscriptionResult['subscriptionId'];
-                $startDate = $subscriptionResult['startDate'];
-                $endDate = $subscriptionResult['endDate'];
-                $stmt->closeCursor();
+                // Simplified purchase without stored procedures
+                $pdo->beginTransaction();
                 
-                // Tạo payment transaction
+                // Update user premium status directly
+                $endDate = date('Y-m-d H:i:s', strtotime('+' . $plan['duration'] . ' days'));
+                $stmt = $pdo->prepare("
+                    UPDATE users 
+                    SET 
+                        isPremium = TRUE,
+                        premiumStartDate = NOW(),
+                        premiumEndDate = ?,
+                        premiumPlanId = ?,
+                        updated_at = NOW()
+                    WHERE id = ?
+                ");
+                $stmt->execute([$endDate, $planId, $userId]);
+                
+                // Create subscription record
+                $stmt = $pdo->prepare("
+                    INSERT INTO user_subscriptions (
+                        userId, planId, status, startDate, endDate, 
+                        paidAmount, paymentMethod, autoRenewal
+                    ) VALUES (?, ?, 'active', NOW(), ?, ?, ?, TRUE)
+                ");
+                $stmt->execute([$userId, $planId, $endDate, $amount, $paymentMethod]);
+                $subscriptionId = $pdo->lastInsertId();
+                
+                // Create payment transaction
                 $description = "Thanh toán {$planName} - Gói {$plan['type']}";
                 $stmt = $pdo->prepare("
                     INSERT INTO payment_transactions (
@@ -334,49 +358,29 @@ try {
                 
                 $transactionId = $pdo->lastInsertId();
                 
-                // Commit transaction
                 $pdo->commit();
-                
-                // Lấy thông tin chi tiết để response
-                $stmt = $pdo->prepare("
-                    SELECT 
-                        pt.*,
-                        us.status as subscriptionStatus,
-                        us.startDate,
-                        us.endDate,
-                        us.autoRenewal,
-                        pp.name as planName,
-                        pp.duration
-                    FROM payment_transactions pt
-                    JOIN user_subscriptions us ON pt.subscriptionId = us.id
-                    JOIN premium_plans pp ON pt.planId = pp.id
-                    WHERE pt.id = ?
-                ");
-                $stmt->execute([$transactionId]);
-                $transactionData = $stmt->fetch(PDO::FETCH_ASSOC);
                 
                 $response = [
                     'success' => true,
                     'transaction' => [
-                        'id' => $transactionData['id'],
-                        'transactionCode' => $transactionData['transactionCode'],
-                        'amount' => (float)$transactionData['amount'],
-                        'currency' => $transactionData['currency'],
-                        'status' => $transactionData['status'],
-                        'paymentMethod' => $transactionData['paymentMethod'],
-                        'type' => $transactionData['type'],
-                        'description' => $transactionData['description'],
-                        'paidAt' => $transactionData['paidAt'],
-                        'createdAt' => $transactionData['created_at']
+                        'id' => $transactionId,
+                        'transactionCode' => $transactionCode,
+                        'amount' => (float)$amount,
+                        'currency' => 'VND',
+                        'status' => 'completed',
+                        'paymentMethod' => $paymentMethod,
+                        'type' => 'subscription',
+                        'description' => $description,
+                        'paidAt' => date('Y-m-d H:i:s')
                     ],
                     'subscription' => [
                         'id' => $subscriptionId,
                         'userId' => $userId,
                         'planId' => $planId,
-                        'status' => $transactionData['subscriptionStatus'],
-                        'startDate' => $transactionData['startDate'],
-                        'endDate' => $transactionData['endDate'],
-                        'autoRenewal' => (bool)$transactionData['autoRenewal'],
+                        'status' => 'active',
+                        'startDate' => date('Y-m-d H:i:s'),
+                        'endDate' => $endDate,
+                        'autoRenewal' => true,
                         'paidAmount' => (float)$amount,
                         'paymentMethod' => $paymentMethod
                     ],
@@ -397,7 +401,7 @@ try {
                     $pdo->rollBack();
                 }
                 error_log("Purchase Error: " . $e->getMessage());
-                throw new Exception('Payment processing failed. Please try again.');
+                throw new Exception('Payment processing failed: ' . $e->getMessage());
             } catch (Exception $e) {
                 if ($pdo->inTransaction()) {
                     $pdo->rollBack();
