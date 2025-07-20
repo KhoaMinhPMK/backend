@@ -91,9 +91,21 @@ try {
         if ($endDate > $now) {
             $premiumInfo['daysRemaining'] = $interval->days;
         } else {
-            // Premium expired, update user status
+            // Premium expired, update user status in database
             $premiumInfo['isPremium'] = false;
             $premiumInfo['daysRemaining'] = 0;
+            
+            // Update database to reflect expired premium
+            $updateStmt = $pdo->prepare("
+                UPDATE users 
+                SET isPremium = FALSE, premiumPlanId = NULL 
+                WHERE id = ?
+            ");
+            $updateStmt->execute([$user['id']]);
+            
+            // Update local user data
+            $user['isPremium'] = false;
+            $user['premiumPlanId'] = null;
         }
     }
     
