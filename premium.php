@@ -276,17 +276,24 @@ try {
             $rawInput = file_get_contents('php://input');
             error_log("Raw input: " . $rawInput);
             
+            if (!$input && !empty($rawInput)) {
+                // Try to decode again
+                $input = json_decode($rawInput, true);
+            }
+            
             if (!$input) {
                 // Try alternative method to get POST data
                 $input = $_POST;
                 if (empty($input)) {
-                    throw new Exception('Invalid JSON input or no data received');
+                    sendErrorResponse('No input data received', 'Bad Request', 400);
+                    return;
                 }
             }
             
             // Validate required fields
             if (empty($input['planId']) || empty($input['paymentMethod'])) {
-                throw new Exception('Plan ID and payment method are required');
+                sendErrorResponse('Plan ID and payment method are required', 'Bad Request', 400);
+                return;
             }
             
             $planId = (int)$input['planId'];
@@ -296,7 +303,8 @@ try {
             // Validate payment method
             $validPaymentMethods = ['momo', 'zalopay', 'vnpay', 'credit_card'];
             if (!in_array($paymentMethod, $validPaymentMethods)) {
-                throw new Exception('Invalid payment method');
+                sendErrorResponse('Invalid payment method', 'Bad Request', 400);
+                return;
             }
             
             try {
@@ -400,13 +408,14 @@ try {
                 if ($pdo->inTransaction()) {
                     $pdo->rollBack();
                 }
-                error_log("Purchase Error: " . $e->getMessage());
-                throw new Exception('Payment processing failed: ' . $e->getMessage());
+                error_log("Purchase PDO Error: " . $e->getMessage());
+                sendErrorResponse('Database error occurred during purchase', 'Internal Server Error', 500);
             } catch (Exception $e) {
                 if ($pdo->inTransaction()) {
                     $pdo->rollBack();
                 }
-                throw $e;
+                error_log("Purchase Error: " . $e->getMessage());
+                sendErrorResponse($e->getMessage(), 'Bad Request', 400);
             }
             
         } else if (strpos($path, 'activate-trial') !== false) {
