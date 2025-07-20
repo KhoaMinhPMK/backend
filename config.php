@@ -104,6 +104,63 @@ function generateToken() {
     return bin2hex(random_bytes(32));
 }
 
+// JWT Helper Functions
+function createJWT($userId, $email) {
+    $header = json_encode(['typ' => 'JWT', 'alg' => 'HS256']);
+    $payload = json_encode([
+        'user_id' => $userId,
+        'email' => $email,
+        'iat' => time(),
+        'exp' => time() + (24 * 60 * 60) // 24 hours
+    ]);
+    
+    $headerEncoded = base64url_encode($header);
+    $payloadEncoded = base64url_encode($payload);
+    
+    $signature = hash_hmac('sha256', $headerEncoded . '.' . $payloadEncoded, JWT_SECRET, true);
+    $signatureEncoded = base64url_encode($signature);
+    
+    return $headerEncoded . '.' . $payloadEncoded . '.' . $signatureEncoded;
+}
+
+function verifyJWT($token) {
+    $parts = explode('.', $token);
+    if (count($parts) !== 3) {
+        return false;
+    }
+    
+    list($headerEncoded, $payloadEncoded, $signatureEncoded) = $parts;
+    
+    // Verify signature
+    $signature = hash_hmac('sha256', $headerEncoded . '.' . $payloadEncoded, JWT_SECRET, true);
+    $expectedSignature = base64url_encode($signature);
+    
+    if ($signatureEncoded !== $expectedSignature) {
+        return false;
+    }
+    
+    // Decode payload
+    $payload = json_decode(base64url_decode($payloadEncoded), true);
+    if (!$payload) {
+        return false;
+    }
+    
+    // Check expiration
+    if (isset($payload['exp']) && time() > $payload['exp']) {
+        return false;
+    }
+    
+    return $payload;
+}
+
+function base64url_encode($data) {
+    return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
+}
+
+function base64url_decode($data) {
+    return base64_decode(str_pad(strtr($data, '-_', '+/'), strlen($data) % 4, '=', STR_PAD_RIGHT));
+}
+
 // Sanitize input
 function sanitizeInput($input) {
     if (is_array($input)) {
