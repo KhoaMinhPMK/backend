@@ -11,22 +11,41 @@ if ($_SERVER['REQUEST_METHOD'] !== 'PUT') {
 
 // Authentication helper function
 function authenticateUser($pdo) {
-    $headers = getallheaders();
-    $authHeader = isset($headers['Authorization']) ? $headers['Authorization'] : '';
+    // Get Authorization header - compatible with different server setups
+    $authHeader = '';
+    
+    // Method 1: getallheaders()
+    if (function_exists('getallheaders')) {
+        $headers = getallheaders();
+        $authHeader = isset($headers['Authorization']) ? $headers['Authorization'] : '';
+    }
+    
+    // Method 2: $_SERVER fallback
+    if (empty($authHeader)) {
+        if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+            $authHeader = $_SERVER['HTTP_AUTHORIZATION'];
+        } elseif (isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
+            $authHeader = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
+        }
+    }
+    
+    error_log("Auth header found: " . $authHeader);
     
     if (empty($authHeader) || !preg_match('/Bearer\s+(.*)$/i', $authHeader, $matches)) {
-        throw new Exception('Authorization token required');
+        throw new Exception('Authorization token required. Header: ' . $authHeader);
     }
     
     $token = $matches[1];
+    error_log("Extracted token: " . substr($token, 0, 20) . "...");
     
     // Extract user ID from token (format: userId_tokenHash)
     $tokenParts = explode('_', $token, 2);
     if (count($tokenParts) !== 2) {
-        throw new Exception('Invalid token format');
+        throw new Exception('Invalid token format. Token: ' . substr($token, 0, 20) . '...');
     }
     
     $userId = $tokenParts[0];
+    error_log("Extracted user ID: " . $userId);
     
     // Validate user exists and is active
     $stmt = $pdo->prepare("SELECT id, fullName, email, active FROM users WHERE id = ?");
@@ -41,15 +60,23 @@ function authenticateUser($pdo) {
 }
 
 try {
+    error_log("=== UPDATE PROFILE API START ===");
+    
     // Kết nối database
     $pdo = getDatabaseConnection();
+    error_log("Database connected successfully");
     
     // Authenticate user
     $currentUser = authenticateUser($pdo);
     $userId = $currentUser['id'];
+    error_log("User authenticated: ID = " . $userId . ", Name = " . $currentUser['fullName']);
     
     // Lấy dữ liệu từ request
-    $input = json_decode(file_get_contents('php://input'), true);
+    $rawInput = file_get_contents('php://input');
+    error_log("Raw input received: " . $rawInput);
+    
+    $input = json_decode($rawInput, true);
+    error_log("Decoded input: " . json_encode($input));
     
     // Validate input
     if (!$input) {
@@ -58,6 +85,7 @@ try {
     
     // Sanitize input
     $input = sanitizeInput($input);
+    error_log("Sanitized input: " . json_encode($input));
     
     // Prepare update fields and values
     $updateFields = [];
