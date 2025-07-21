@@ -43,13 +43,16 @@ try {
     // Lấy dữ liệu từ request
     $input = json_decode(file_get_contents('php://input'), true);
     
-    // Parse URL path để xác định endpoint
+    // Lấy action từ query parameter
+    $action = $_GET['action'] ?? '';
+    
+    // Parse URL path để xác định endpoint (fallback)
     $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
     $pathParts = explode('/', trim($path, '/'));
     $endpoint = end($pathParts);
     
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-        if (strpos($path, 'plans') !== false) {
+        if ($action === 'plans' || strpos($path, 'plans') !== false) {
             // GET /premium/plans
             try {
                 $stmt = $pdo->prepare("SELECT * FROM premium_plans WHERE isActive = TRUE ORDER BY sortOrder ASC");
@@ -97,7 +100,7 @@ try {
                 sendSuccessResponse($mockPlans, 'Premium plans retrieved successfully (mock data)');
             }
             
-        } else if (strpos($path, 'my-status') !== false) {
+        } else if ($action === 'my-status' || strpos($path, 'my-status') !== false) {
             // GET /premium/my-status
             // Cần userId từ token
             $userId = getUserIdFromToken($pdo);
@@ -210,7 +213,7 @@ try {
                 sendSuccessResponse($mockStatus, 'Premium status retrieved successfully (fallback)');
             }
             
-        } else if (strpos($path, 'payment-methods') !== false) {
+        } else if ($action === 'payment-methods' || strpos($path, 'payment-methods') !== false) {
             // GET /premium/payment-methods
             $paymentMethods = [
                 [
@@ -257,7 +260,7 @@ try {
             
             sendSuccessResponse($paymentMethods, 'Payment methods retrieved successfully');
             
-        } else if (strpos($path, 'my-transactions') !== false) {
+        } else if ($action === 'my-transactions' || strpos($path, 'my-transactions') !== false) {
             // GET /premium/payment/my-transactions
             $userId = getUserIdFromToken($pdo);
             if (!$userId) {
@@ -493,7 +496,7 @@ try {
         }
         
     } else if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
-        if (strpos($path, 'cancel') !== false) {
+        if ($action === 'cancel' || strpos($path, 'cancel') !== false) {
             // PUT /premium/subscription/cancel
             if (!$input) {
                 throw new Exception('Invalid JSON input');
