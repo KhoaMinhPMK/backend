@@ -22,41 +22,33 @@ try {
         exit;
     }
     
-    // Chuẩn bị các trường dữ liệu (tất cả đều optional)
-    $fullName = isset($data['fullName']) ? sanitizeInput($data['fullName']) : null;
+    // Chuẩn bị các trường dữ liệu theo cấu trúc bảng user (tất cả đều optional)
+    $userName = isset($data['userName']) ? sanitizeInput($data['userName']) : null;
     $email = isset($data['email']) ? sanitizeInput($data['email']) : null;
-    $phone = isset($data['phone']) ? sanitizeInput($data['phone']) : null;
-    $password = isset($data['password']) ? $data['password'] : null;
-    $role = isset($data['role']) ? sanitizeInput($data['role']) : 'user';
+    $age = isset($data['age']) ? (int)$data['age'] : null;
     $gender = isset($data['gender']) ? sanitizeInput($data['gender']) : null;
-    $dateOfBirth = isset($data['dateOfBirth']) ? sanitizeInput($data['dateOfBirth']) : null;
-    $address = isset($data['address']) ? sanitizeInput($data['address']) : null;
-    $emergencyContact = isset($data['emergencyContact']) ? sanitizeInput($data['emergencyContact']) : null;
-    $medicalInfo = isset($data['medicalInfo']) ? sanitizeInput($data['medicalInfo']) : null;
-    $avatar = isset($data['avatar']) ? sanitizeInput($data['avatar']) : null;
-    
-    // Hash password nếu có
-    $hashedPassword = null;
-    if ($password) {
-        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-    }
+    $blood = isset($data['blood']) ? sanitizeInput($data['blood']) : null;
+    $chronic_diseases = isset($data['chronic_diseases']) ? sanitizeInput($data['chronic_diseases']) : null;
+    $allergies = isset($data['allergies']) ? sanitizeInput($data['allergies']) : null;
+    $premium_status = isset($data['premium_status']) ? (bool)$data['premium_status'] : false;
+    $notifications = isset($data['notifications']) ? (bool)$data['notifications'] : true;
+    $relative_phone = isset($data['relative_phone']) ? sanitizeInput($data['relative_phone']) : null;
+    $home_address = isset($data['home_address']) ? sanitizeInput($data['home_address']) : null;
     
     // Chuẩn bị câu SQL INSERT
-    $sql = "INSERT INTO users (
-        fullName, 
+    $sql = "INSERT INTO user (
+        userName, 
         email, 
-        phone, 
-        password, 
-        role, 
+        age, 
         gender, 
-        dateOfBirth, 
-        address, 
-        emergencyContact, 
-        medicalInfo, 
-        avatar,
-        active,
-        createdAt
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW())";
+        blood, 
+        chronic_diseases, 
+        allergies, 
+        premium_status,
+        notifications,
+        relative_phone,
+        home_address
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     
     $stmt = $conn->prepare($sql);
     
@@ -67,17 +59,17 @@ try {
     
     // Execute với parameters
     $result = $stmt->execute([
-        $fullName, 
+        $userName, 
         $email, 
-        $phone, 
-        $hashedPassword, 
-        $role, 
+        $age, 
         $gender, 
-        $dateOfBirth, 
-        $address, 
-        $emergencyContact, 
-        $medicalInfo, 
-        $avatar
+        $blood, 
+        $chronic_diseases, 
+        $allergies, 
+        $premium_status,
+        $notifications,
+        $relative_phone,
+        $home_address
     ]);
     
     // Thực thi query
@@ -87,19 +79,20 @@ try {
         // Tạo response data
         $responseData = [
             'user' => [
-                'id' => (int)$userId,
-                'fullName' => $fullName,
+                'userId' => (int)$userId,
+                'userName' => $userName,
                 'email' => $email,
-                'phone' => $phone,
-                'role' => $role,
+                'age' => $age,
                 'gender' => $gender,
-                'dateOfBirth' => $dateOfBirth,
-                'address' => $address,
-                'emergencyContact' => $emergencyContact,
-                'medicalInfo' => $medicalInfo,
-                'avatar' => $avatar,
-                'active' => true,
-                'createdAt' => date('Y-m-d H:i:s')
+                'blood' => $blood,
+                'chronic_diseases' => $chronic_diseases,
+                'allergies' => $allergies,
+                'premium_status' => $premium_status,
+                'notifications' => $notifications,
+                'relative_phone' => $relative_phone,
+                'home_address' => $home_address,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
             ]
         ];
         
