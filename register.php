@@ -2,6 +2,9 @@
 // Bao gồm file config
 require_once 'config.php';
 
+// Set CORS headers
+setCorsHeaders();
+
 // Chỉ cho phép POST request
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     sendErrorResponse('Method not allowed', 405);
@@ -15,6 +18,9 @@ try {
     // Lấy dữ liệu JSON từ request body
     $input = file_get_contents('php://input');
     $data = json_decode($input, true);
+    
+    // Debug: log input data
+    error_log('Register input: ' . $input);
     
     // Kiểm tra JSON có hợp lệ không
     if (json_last_error() !== JSON_ERROR_NONE) {
@@ -96,7 +102,10 @@ try {
             ]
         ];
         
-        sendSuccessResponse('User registered successfully', $responseData);
+        // Debug: log response data
+        error_log('Register response: ' . json_encode($responseData));
+        
+        sendSuccessResponse($responseData, 'User registered successfully');
         
     } else {
         sendErrorResponse('Failed to register user');
