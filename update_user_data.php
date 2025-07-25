@@ -72,6 +72,7 @@ try {
     // Các trường có thể update theo cấu trúc bảng user
     $allowedFields = [
         'userName' => 'userName',
+        'phone' => 'phone',
         'age' => 'age',
         'gender' => 'gender',
         'blood' => 'blood',
@@ -149,6 +150,7 @@ try {
                     'userId' => (int)$updatedUser['userId'],
                     'userName' => $updatedUser['userName'],
                     'email' => $updatedUser['email'],
+                    'phone' => $updatedUser['phone'],
                     'age' => $updatedUser['age'],
                     'gender' => $updatedUser['gender'],
                     'blood' => $updatedUser['blood'],
