@@ -77,6 +77,8 @@ try {
                     'chronic_diseases' => $user['chronic_diseases'],
                     'allergies' => $user['allergies'],
                     'premium_status' => (bool)$user['premium_status'],
+                    'premium_start_date' => $user['premium_start_date'],
+                    'premium_end_date' => $user['premium_end_date'],
                     'notifications' => (bool)$user['notifications'],
                     'relative_phone' => $user['relative_phone'],
                     'home_address' => $user['home_address'],

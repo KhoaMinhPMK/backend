@@ -12,6 +12,8 @@ CREATE TABLE IF NOT EXISTS premium_plan (
     discount_percentage INT DEFAULT 0,
     savings_text VARCHAR(50),
     features JSON,
+
+    
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     is_active BOOLEAN DEFAULT TRUE

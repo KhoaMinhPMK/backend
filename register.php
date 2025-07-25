@@ -37,6 +37,10 @@ try {
     $chronic_diseases = isset($data['chronic_diseases']) ? sanitizeInput($data['chronic_diseases']) : null;
     $allergies = isset($data['allergies']) ? sanitizeInput($data['allergies']) : null;
     $premium_status = isset($data['premium_status']) ? (bool)$data['premium_status'] : false;
+    $premium_start_date = isset($data['premium_start_date']) && $data['premium_start_date'] ? 
+        date('Y-m-d H:i:s', strtotime($data['premium_start_date'])) : null;
+    $premium_end_date = isset($data['premium_end_date']) && $data['premium_end_date'] ? 
+        date('Y-m-d H:i:s', strtotime($data['premium_end_date'])) : null;
     $notifications = isset($data['notifications']) ? (bool)$data['notifications'] : true;
     $relative_phone = isset($data['relative_phone']) ? sanitizeInput($data['relative_phone']) : null;
     $home_address = isset($data['home_address']) ? sanitizeInput($data['home_address']) : null;
@@ -51,10 +55,12 @@ try {
         chronic_diseases, 
         allergies, 
         premium_status,
+        premium_start_date,
+        premium_end_date,
         notifications,
         relative_phone,
         home_address
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     
     $stmt = $conn->prepare($sql);
     
@@ -73,6 +79,8 @@ try {
         $chronic_diseases, 
         $allergies, 
         $premium_status,
+        $premium_start_date,
+        $premium_end_date,
         $notifications,
         $relative_phone,
         $home_address
@@ -94,6 +102,8 @@ try {
                 'chronic_diseases' => $chronic_diseases,
                 'allergies' => $allergies,
                 'premium_status' => $premium_status,
+                'premium_start_date' => $premium_start_date,
+                'premium_end_date' => $premium_end_date,
                 'notifications' => $notifications,
                 'relative_phone' => $relative_phone,
                 'home_address' => $home_address,

@@ -78,6 +78,8 @@ try {
         'chronic_diseases' => 'chronic_diseases',
         'allergies' => 'allergies',
         'premium_status' => 'premium_status',
+        'premium_start_date' => 'premium_start_date',
+        'premium_end_date' => 'premium_end_date',
         'notifications' => 'notifications',
         'relative_phone' => 'relative_phone',
         'home_address' => 'home_address'
@@ -92,6 +94,16 @@ try {
                 $updateValues[] = (bool)$data[$jsonKey];
             } elseif ($dbField === 'age') {
                 $updateValues[] = (int)$data[$jsonKey];
+            } elseif ($dbField === 'premium_start_date' || $dbField === 'premium_end_date') {
+                // Xử lý datetime fields - expect ISO string format
+                $dateValue = $data[$jsonKey];
+                if ($dateValue && $dateValue !== 'null') {
+                    // Convert ISO string to MySQL datetime format
+                    $dateTime = date('Y-m-d H:i:s', strtotime($dateValue));
+                    $updateValues[] = $dateTime;
+                } else {
+                    $updateValues[] = null;
+                }
             } else {
                 $updateValues[] = sanitizeInput($data[$jsonKey]);
             }
@@ -143,6 +155,8 @@ try {
                     'chronic_diseases' => $updatedUser['chronic_diseases'],
                     'allergies' => $updatedUser['allergies'],
                     'premium_status' => (bool)$updatedUser['premium_status'],
+                    'premium_start_date' => $updatedUser['premium_start_date'],
+                    'premium_end_date' => $updatedUser['premium_end_date'],
                     'notifications' => (bool)$updatedUser['notifications'],
                     'relative_phone' => $updatedUser['relative_phone'],
                     'home_address' => $updatedUser['home_address'],
