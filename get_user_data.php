@@ -76,6 +76,16 @@ try {
                     'notifications' => (bool)$user['notifications'],
                     'relative_phone' => $user['relative_phone'],
                     'home_address' => $user['home_address'],
+                    // Health fields
+                    'hypertension' => (int)$user['hypertension'],
+                    'heart_disease' => (int)$user['heart_disease'],
+                    'ever_married' => $user['ever_married'],
+                    'work_type' => $user['work_type'],
+                    'residence_type' => $user['residence_type'],
+                    'avg_glucose_level' => $user['avg_glucose_level'] ? (float)$user['avg_glucose_level'] : null,
+                    'bmi' => $user['bmi'] ? (float)$user['bmi'] : null,
+                    'smoking_status' => $user['smoking_status'],
+                    'stroke' => (int)$user['stroke'],
                     'created_at' => $user['created_at'],
                     'updated_at' => $user['updated_at']
                 ]

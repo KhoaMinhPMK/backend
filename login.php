@@ -67,25 +67,25 @@ try {
         if ($user) {
             // User tồn tại - trả về thông tin user
             $responseData = [
-                'user' => [
-                    'userId' => (int)$user['userId'],
-                    'userName' => $user['userName'],
-                    'email' => $user['email'],
-                    'age' => $user['age'],
-                    'gender' => $user['gender'],
-                    'blood' => $user['blood'],
-                    'chronic_diseases' => $user['chronic_diseases'],
-                    'allergies' => $user['allergies'],
-                    'premium_status' => (bool)$user['premium_status'],
+                    'user' => [
+                        'userId' => (int)$user['userId'],
+                        'userName' => $user['userName'],
+                        'email' => $user['email'],
+                        'age' => $user['age'],
+                        'gender' => $user['gender'],
+                        'blood' => $user['blood'],
+                        'chronic_diseases' => $user['chronic_diseases'],
+                        'allergies' => $user['allergies'],
+                        'premium_status' => (bool)$user['premium_status'],
                     'premium_start_date' => $user['premium_start_date'],
                     'premium_end_date' => $user['premium_end_date'],
-                    'notifications' => (bool)$user['notifications'],
-                    'relative_phone' => $user['relative_phone'],
-                    'home_address' => $user['home_address'],
-                    'created_at' => $user['created_at'],
-                    'updated_at' => $user['updated_at']
-                ],
-                'token' => 'jwt_token_' . $user['userId'] . '_' . time()
+                        'notifications' => (bool)$user['notifications'],
+                        'relative_phone' => $user['relative_phone'],
+                        'home_address' => $user['home_address'],
+                        'created_at' => $user['created_at'],
+                        'updated_at' => $user['updated_at']
+                    ],
+                    'token' => 'jwt_token_' . $user['userId'] . '_' . time()
             ];
             
             // Debug: log response data

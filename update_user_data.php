@@ -83,7 +83,17 @@ try {
         'premium_end_date' => 'premium_end_date',
         'notifications' => 'notifications',
         'relative_phone' => 'relative_phone',
-        'home_address' => 'home_address'
+        'home_address' => 'home_address',
+        // Health fields
+        'hypertension' => 'hypertension',
+        'heart_disease' => 'heart_disease',
+        'ever_married' => 'ever_married',
+        'work_type' => 'work_type',
+        'residence_type' => 'residence_type',
+        'avg_glucose_level' => 'avg_glucose_level',
+        'bmi' => 'bmi',
+        'smoking_status' => 'smoking_status',
+        'stroke' => 'stroke'
     ];
     
     foreach ($allowedFields as $jsonKey => $dbField) {
@@ -93,8 +103,14 @@ try {
             // Xử lý kiểu dữ liệu đặc biệt
             if ($dbField === 'premium_status' || $dbField === 'notifications') {
                 $updateValues[] = (bool)$data[$jsonKey];
+            } elseif ($dbField === 'hypertension' || $dbField === 'heart_disease' || $dbField === 'stroke') {
+                // Health boolean fields (0/1)
+                $updateValues[] = (int)$data[$jsonKey];
             } elseif ($dbField === 'age') {
                 $updateValues[] = (int)$data[$jsonKey];
+            } elseif ($dbField === 'avg_glucose_level' || $dbField === 'bmi') {
+                // Decimal fields
+                $updateValues[] = $data[$jsonKey] ? (float)$data[$jsonKey] : null;
             } elseif ($dbField === 'premium_start_date' || $dbField === 'premium_end_date') {
                 // Xử lý datetime fields - expect ISO string format
                 $dateValue = $data[$jsonKey];
@@ -162,6 +178,16 @@ try {
                     'notifications' => (bool)$updatedUser['notifications'],
                     'relative_phone' => $updatedUser['relative_phone'],
                     'home_address' => $updatedUser['home_address'],
+                    // Health fields
+                    'hypertension' => (int)$updatedUser['hypertension'],
+                    'heart_disease' => (int)$updatedUser['heart_disease'],
+                    'ever_married' => $updatedUser['ever_married'],
+                    'work_type' => $updatedUser['work_type'],
+                    'residence_type' => $updatedUser['residence_type'],
+                    'avg_glucose_level' => $updatedUser['avg_glucose_level'] ? (float)$updatedUser['avg_glucose_level'] : null,
+                    'bmi' => $updatedUser['bmi'] ? (float)$updatedUser['bmi'] : null,
+                    'smoking_status' => $updatedUser['smoking_status'],
+                    'stroke' => (int)$updatedUser['stroke'],
                     'created_at' => $updatedUser['created_at'],
                     'updated_at' => $updatedUser['updated_at']
                 ]
