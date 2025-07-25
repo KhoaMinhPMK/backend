@@ -92,6 +92,8 @@ try {
         'residence_type' => 'residence_type',
         'avg_glucose_level' => 'avg_glucose_level',
         'bmi' => 'bmi',
+        'height' => 'height',
+        'weight' => 'weight',
         'smoking_status' => 'smoking_status',
         'stroke' => 'stroke'
     ];
@@ -108,7 +110,7 @@ try {
                 $updateValues[] = (int)$data[$jsonKey];
             } elseif ($dbField === 'age') {
                 $updateValues[] = (int)$data[$jsonKey];
-            } elseif ($dbField === 'avg_glucose_level' || $dbField === 'bmi') {
+            } elseif ($dbField === 'avg_glucose_level' || $dbField === 'bmi' || $dbField === 'height' || $dbField === 'weight') {
                 // Decimal fields
                 $updateValues[] = $data[$jsonKey] ? (float)$data[$jsonKey] : null;
             } elseif ($dbField === 'premium_start_date' || $dbField === 'premium_end_date') {
@@ -186,6 +188,8 @@ try {
                     'residence_type' => $updatedUser['residence_type'],
                     'avg_glucose_level' => $updatedUser['avg_glucose_level'] ? (float)$updatedUser['avg_glucose_level'] : null,
                     'bmi' => $updatedUser['bmi'] ? (float)$updatedUser['bmi'] : null,
+                    'height' => $updatedUser['height'] ? (float)$updatedUser['height'] : null,
+                    'weight' => $updatedUser['weight'] ? (float)$updatedUser['weight'] : null,
                     'smoking_status' => $updatedUser['smoking_status'],
                     'stroke' => (int)$updatedUser['stroke'],
                     'created_at' => $updatedUser['created_at'],
