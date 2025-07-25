@@ -2,8 +2,8 @@
 // Bao gồm file config
 require_once 'config.php';
 
-// Set content type
-header('Content-Type: application/json');
+// Set CORS headers
+setCorsHeaders();
 
 // Chỉ cho phép POST request
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -66,28 +66,33 @@ try {
         
         if ($user) {
             // User tồn tại - trả về thông tin user
+            $responseData = [
+                'user' => [
+                    'userId' => (int)$user['userId'],
+                    'userName' => $user['userName'],
+                    'email' => $user['email'],
+                    'age' => $user['age'],
+                    'gender' => $user['gender'],
+                    'blood' => $user['blood'],
+                    'chronic_diseases' => $user['chronic_diseases'],
+                    'allergies' => $user['allergies'],
+                    'premium_status' => (bool)$user['premium_status'],
+                    'notifications' => (bool)$user['notifications'],
+                    'relative_phone' => $user['relative_phone'],
+                    'home_address' => $user['home_address'],
+                    'created_at' => $user['created_at'],
+                    'updated_at' => $user['updated_at']
+                ],
+                'token' => 'jwt_token_' . $user['userId'] . '_' . time()
+            ];
+            
+            // Debug: log response data
+            error_log('Login response: ' . json_encode($responseData));
+            
             echo json_encode([
                 'success' => true,
                 'message' => 'Login successful',
-                'data' => [
-                    'user' => [
-                        'userId' => (int)$user['userId'],
-                        'userName' => $user['userName'],
-                        'email' => $user['email'],
-                        'age' => $user['age'],
-                        'gender' => $user['gender'],
-                        'blood' => $user['blood'],
-                        'chronic_diseases' => $user['chronic_diseases'],
-                        'allergies' => $user['allergies'],
-                        'premium_status' => (bool)$user['premium_status'],
-                        'notifications' => (bool)$user['notifications'],
-                        'relative_phone' => $user['relative_phone'],
-                        'home_address' => $user['home_address'],
-                        'created_at' => $user['created_at'],
-                        'updated_at' => $user['updated_at']
-                    ],
-                    'token' => 'jwt_token_' . $user['userId'] . '_' . time()
-                ]
+                'data' => $responseData
             ]);
             
         } else {
