@@ -169,6 +169,51 @@ try {
             'expires_at' => $newRequest['expires_at']
         ];
         
+        // --- Bắt đầu quy trình thông báo ---
+        
+        // 1. Tạo payload để lưu vào DB và gửi đi
+        $notification_data = [
+            'type' => 'friend_request_received',
+            'title' => 'Lời mời kết bạn mới',
+            'body' => 'Bạn có một lời mời kết bạn mới từ ' . $fromUser['userName'] . '.',
+            'details' => [ // Đổi tên 'data' thành 'details' để tránh trùng với tên cột
+                'from_phone' => $fromPhone,
+                'from_name' => $fromUser['userName'],
+                'request_id' => $requestId,
+                'message' => $message
+            ]
+        ];
+
+        // 2. Lưu thông báo vào bảng `notifications`
+        $insertNotifSql = "INSERT INTO notifications (user_phone, type, title, body, data) VALUES (?, ?, ?, ?, ?)";
+        $insertNotifStmt = $conn->prepare($insertNotifSql);
+        
+        if ($insertNotifStmt) {
+            $insertNotifStmt->execute([
+                $toPhone,
+                $notification_data['type'],
+                $notification_data['title'],
+                $notification_data['body'],
+                json_encode($notification_data['details'])
+            ]);
+            $notificationId = $conn->lastInsertId();
+            
+            // 3. Lấy thông báo vừa tạo để gửi qua socket
+            $getNotifSql = "SELECT * FROM notifications WHERE id = ?";
+            $getNotifStmt = $conn->prepare($getNotifSql);
+            $getNotifStmt->execute([$notificationId]);
+            $fullNotificationPayload = $getNotifStmt->fetch(PDO::FETCH_ASSOC);
+
+            // Gửi thông báo real-time với đầy đủ thông tin từ DB
+            if ($fullNotificationPayload) {
+                send_socket_notification($toPhone, $fullNotificationPayload);
+            }
+        } else {
+            logError("Database prepare error for inserting notification.", ['to_phone' => $toPhone]);
+        }
+        
+        // --- Kết thúc quy trình thông báo ---
+        
         // Debug: log response data
         error_log('Request friend response: ' . json_encode($responseData));
         

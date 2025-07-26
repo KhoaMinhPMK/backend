@@ -169,4 +169,44 @@ function logError($message, $context = []) {
     error_log(json_encode($log));
 }
 
+// Function to send notification to Node.js server
+function send_socket_notification($to_phone, $payload) {
+    //
+    // IMPORTANT: Use the correct IP address or domain of your Node.js server.
+    // If running on the same machine for development, you can use 'http://localhost:3000/notify'.
+    // For production, use your public domain e.g., 'https://chat.viegrand.site/notify'.
+    //
+    $nodeServerUrl = 'http://localhost:3000/notify'; 
+    $secretKey = 'viegrand_super_secret_key_for_php_2025'; // Must match the key in server.js
+
+    $data = [
+        'to_phone' => $to_phone,
+        'payload'  => $payload,
+        'secret'   => $secretKey,
+    ];
+
+    $ch = curl_init($nodeServerUrl);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Content-Type: application/json',
+        'Content-Length: ' . strlen(json_encode($data))
+    ]);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 5); // 5-second timeout
+
+    $response = curl_exec($ch);
+    $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $error = curl_error($ch);
+    curl_close($ch);
+
+    // Log the result for debugging
+    if ($error) {
+        logError("cURL Error for Socket Notification: " . $error, ['to_phone' => $to_phone]);
+        return false;
+    }
+
+    logError("Socket notification sent to $to_phone. Status: $httpcode. Response: $response");
+    
+    return $httpcode === 200;
+}
 ?>
