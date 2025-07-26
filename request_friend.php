@@ -2,11 +2,19 @@
 // Bao gồm file config
 require_once 'config.php';
 
+// DEBUG: Log raw request data
+error_log("=== REQUEST_FRIEND.PHP CALLED ===");
+error_log("Request method: " . $_SERVER['REQUEST_METHOD']);
+error_log("Content-Type: " . ($_SERVER['CONTENT_TYPE'] ?? 'not set'));
+error_log("Raw POST data: " . print_r($_POST, true));
+error_log("Raw input: " . file_get_contents('php://input'));
+
 // Set CORS headers
 setCorsHeaders();
 
 // Chỉ cho phép POST request
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    error_log("❌ Method not allowed: " . $_SERVER['REQUEST_METHOD']);
     sendErrorResponse('Method not allowed', 'Method not allowed', 405);
     exit;
 }
@@ -14,16 +22,20 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 try {
     // Lấy kết nối database
     $conn = getDatabaseConnection();
+    error_log("✅ Database connection established");
     
     // Lấy dữ liệu JSON từ request body
     $input = file_get_contents('php://input');
     $data = json_decode($input, true);
+    
+    error_log("Parsed input data: " . print_r($data, true));
     
     // Debug: log input data
     error_log('Request friend input: ' . $input);
     
     // Kiểm tra JSON có hợp lệ không
     if (json_last_error() !== JSON_ERROR_NONE) {
+        error_log("❌ JSON decode error: " . json_last_error_msg());
         sendErrorResponse('Invalid JSON format', 'Bad request', 400);
         exit;
     }
@@ -33,10 +45,16 @@ try {
     $toPhone = isset($data['to_phone']) ? sanitizeInput($data['to_phone']) : null;
     $message = isset($data['message']) ? sanitizeInput($data['message']) : null;
     
+    error_log("Processed parameters - fromPhone: $fromPhone, toPhone: $toPhone, message: $message");
+
     if (!$fromPhone || !$toPhone) {
-        sendErrorResponse('Both from_phone and to_phone are required', 'Bad request', 400);
+        error_log("❌ Missing required parameters");
+        sendErrorResponse('from_phone and to_phone are required', 'Bad request', 400);
         exit;
     }
+
+    // Rest of the file continues...
+    error_log("✅ Validation passed, proceeding with friend request logic");
     
     // Validate phone format
     $fromPhone = preg_replace('/[^0-9+]/', '', $fromPhone);
