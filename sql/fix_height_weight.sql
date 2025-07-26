@@ -37,4 +37,4 @@ PREPARE stmt FROM @sql_weight;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
-SELECT 'Height and weight columns added successfully' as result; 
+SELECT 'Height and weight columns added successfully' as result;
