@@ -28,109 +28,103 @@ try {
         exit;
     }
     
-    // Lấy phone numbers
-    $userPhone = isset($data['user_phone']) ? sanitizeInput($data['user_phone']) : null;
-    $friendPhone = isset($data['friend_phone']) ? sanitizeInput($data['friend_phone']) : null;
-    $notes = isset($data['notes']) ? sanitizeInput($data['notes']) : null;
+    // Lấy parameters
+    $fromPhone = isset($data['from_phone']) ? sanitizeInput($data['from_phone']) : null;
+    $toPhone = isset($data['to_phone']) ? sanitizeInput($data['to_phone']) : null;
+    $message = isset($data['message']) ? sanitizeInput($data['message']) : null;
     
-    if (!$userPhone || !$friendPhone) {
-        sendErrorResponse('Both user_phone and friend_phone are required', 'Bad request', 400);
+    if (!$fromPhone || !$toPhone) {
+        sendErrorResponse('Both from_phone and to_phone are required', 'Bad request', 400);
         exit;
     }
     
     // Validate phone format
-    $userPhone = preg_replace('/[^0-9+]/', '', $userPhone);
-    $friendPhone = preg_replace('/[^0-9+]/', '', $friendPhone);
+    $fromPhone = preg_replace('/[^0-9+]/', '', $fromPhone);
+    $toPhone = preg_replace('/[^0-9+]/', '', $toPhone);
     
-    if (strlen($userPhone) < 10 || strlen($friendPhone) < 10) {
+    if (strlen($fromPhone) < 10 || strlen($toPhone) < 10) {
         sendErrorResponse('Invalid phone number format', 'Bad request', 400);
         exit;
     }
     
     // Không thể kết bạn với chính mình
-    if ($userPhone === $friendPhone) {
+    if ($fromPhone === $toPhone) {
         sendErrorResponse('Cannot send friend request to yourself', 'Bad request', 400);
         exit;
     }
     
-    // Kiểm tra xem friend_phone có tồn tại trong hệ thống không
+    // Kiểm tra xem to_phone có tồn tại trong hệ thống không
     $checkUserSql = "SELECT userId, userName FROM user WHERE phone = ? LIMIT 1";
     $checkUserStmt = $conn->prepare($checkUserSql);
-    $checkUserStmt->execute([$friendPhone]);
-    $friendUser = $checkUserStmt->fetch(PDO::FETCH_ASSOC);
+    $checkUserStmt->execute([$toPhone]);
+    $toUser = $checkUserStmt->fetch(PDO::FETCH_ASSOC);
     
-    if (!$friendUser) {
-        sendErrorResponse('Friend phone number does not exist in system', 'Not found', 404);
+    if (!$toUser) {
+        sendErrorResponse('Target phone number does not exist in system', 'Not found', 404);
         exit;
     }
     
-    // Kiểm tra trạng thái hiện tại của mối quan hệ
-    $checkSql = "SELECT * FROM friend_status WHERE 
-                 (user_phone = ? AND friend_phone = ?) OR 
-                 (user_phone = ? AND friend_phone = ?) 
-                 LIMIT 1";
-    $checkStmt = $conn->prepare($checkSql);
-    $checkStmt->execute([$userPhone, $friendPhone, $friendPhone, $userPhone]);
-    $existingRelation = $checkStmt->fetch(PDO::FETCH_ASSOC);
+    // Lấy thông tin người gửi
+    $checkFromUserSql = "SELECT userId, userName FROM user WHERE phone = ? LIMIT 1";
+    $checkFromUserStmt = $conn->prepare($checkFromUserSql);
+    $checkFromUserStmt->execute([$fromPhone]);
+    $fromUser = $checkFromUserStmt->fetch(PDO::FETCH_ASSOC);
     
-    if ($existingRelation) {
-        // Đã có mối quan hệ
-        switch ($existingRelation['status']) {
-            case 'pending':
-                if ($existingRelation['requester_phone'] === $userPhone) {
-                    sendErrorResponse('Friend request already sent and pending', 'Conflict', 409);
-                } else {
-                    // Người kia đã gửi request cho mình → có thể accept luôn
-                    sendSuccessResponse([
-                        'canAccept' => true,
-                        'message' => 'This person has already sent you a friend request',
-                        'existingRequest' => [
-                            'id' => $existingRelation['id'],
-                            'requester_phone' => $existingRelation['requester_phone'],
-                            'requested_at' => $existingRelation['requested_at']
-                        ]
-                    ], 'Existing friend request found');
-                }
-                exit;
-                
-            case 'accepted':
-                sendErrorResponse('You are already friends', 'Conflict', 409);
-                exit;
-                
-            case 'blocked':
-                sendErrorResponse('Cannot send friend request to this user', 'Forbidden', 403);
-                exit;
-                
-            case 'rejected':
-                // Có thể gửi lại request sau khi bị từ chối
-                // Cập nhật request cũ thành pending
-                $updateSql = "UPDATE friend_status SET 
-                              status = 'pending', 
-                              requester_phone = ?, 
-                              requested_at = CURRENT_TIMESTAMP,
-                              responded_at = NULL,
-                              notes = ?
-                              WHERE id = ?";
-                $updateStmt = $conn->prepare($updateSql);
-                $updateResult = $updateStmt->execute([$userPhone, $notes, $existingRelation['id']]);
-                
-                if ($updateResult) {
-                    sendSuccessResponse([
-                        'friendRequestId' => $existingRelation['id'],
-                        'status' => 'pending',
-                        'friendName' => $friendUser['userName'],
-                        'message' => 'Friend request sent successfully (re-sent after rejection)'
-                    ], 'Friend request re-sent successfully');
-                } else {
-                    sendErrorResponse('Failed to update friend request', 'Database error', 500);
-                }
-                exit;
+    if (!$fromUser) {
+        sendErrorResponse('Your phone number does not exist in system', 'Not found', 404);
+        exit;
+    }
+    
+    // Kiểm tra xem đã là bạn bè chưa (trong friend_status)
+    $checkFriendSql = "SELECT * FROM friend_status WHERE 
+                       (user_phone = ? AND friend_phone = ? AND status = 'accepted') OR 
+                       (user_phone = ? AND friend_phone = ? AND status = 'accepted') 
+                       LIMIT 1";
+    $checkFriendStmt = $conn->prepare($checkFriendSql);
+    $checkFriendStmt->execute([$fromPhone, $toPhone, $toPhone, $fromPhone]);
+    $existingFriendship = $checkFriendStmt->fetch(PDO::FETCH_ASSOC);
+    
+    if ($existingFriendship) {
+        sendErrorResponse('You are already friends', 'Conflict', 409);
+        exit;
+    }
+    
+    // Kiểm tra xem có pending request nào không (chưa expired)
+    $checkRequestSql = "SELECT * FROM friend_requests WHERE 
+                        ((from_phone = ? AND to_phone = ?) OR (from_phone = ? AND to_phone = ?))
+                        AND status = 'pending' 
+                        AND expires_at > NOW()
+                        ORDER BY sent_at DESC
+                        LIMIT 1";
+    $checkRequestStmt = $conn->prepare($checkRequestSql);
+    $checkRequestStmt->execute([$fromPhone, $toPhone, $toPhone, $fromPhone]);
+    $existingRequest = $checkRequestStmt->fetch(PDO::FETCH_ASSOC);
+    
+    if ($existingRequest) {
+        if ($existingRequest['from_phone'] === $fromPhone) {
+            // Đã gửi request rồi
+            sendErrorResponse('Friend request already sent and pending', 'Conflict', 409);
+        } else {
+            // Người kia đã gửi request cho mình → có thể accept luôn
+            sendSuccessResponse([
+                'canAccept' => true,
+                'message' => 'This person has already sent you a friend request',
+                'existingRequest' => [
+                    'id' => $existingRequest['id'],
+                    'from_phone' => $existingRequest['from_phone'],
+                    'from_name' => $fromUser['userName'], // Tên người đã gửi request
+                    'message' => $existingRequest['message'],
+                    'sent_at' => $existingRequest['sent_at'],
+                    'expires_at' => $existingRequest['expires_at']
+                ]
+            ], 'Existing friend request found');
+            exit;
         }
     }
     
-    // Chưa có mối quan hệ → tạo mới
-    $insertSql = "INSERT INTO friend_status (user_phone, friend_phone, status, requester_phone, notes) 
-                  VALUES (?, ?, 'pending', ?, ?)";
+    // Tạo friend request mới
+    $insertSql = "INSERT INTO friend_requests (from_phone, to_phone, message, status, expires_at) 
+                  VALUES (?, ?, ?, 'pending', DATE_ADD(NOW(), INTERVAL 7 DAY))";
     $insertStmt = $conn->prepare($insertSql);
     
     if (!$insertStmt) {
@@ -138,20 +132,27 @@ try {
         exit;
     }
     
-    $result = $insertStmt->execute([$userPhone, $friendPhone, $userPhone, $notes]);
+    $result = $insertStmt->execute([$fromPhone, $toPhone, $message]);
     
     if ($result) {
-        $friendRequestId = $conn->lastInsertId();
+        $requestId = $conn->lastInsertId();
+        
+        // Lấy thông tin chi tiết của request vừa tạo
+        $getRequestSql = "SELECT * FROM friend_requests WHERE id = ?";
+        $getRequestStmt = $conn->prepare($getRequestSql);
+        $getRequestStmt->execute([$requestId]);
+        $newRequest = $getRequestStmt->fetch(PDO::FETCH_ASSOC);
         
         $responseData = [
-            'friendRequestId' => (int)$friendRequestId,
-            'user_phone' => $userPhone,
-            'friend_phone' => $friendPhone,
+            'requestId' => (int)$requestId,
+            'from_phone' => $fromPhone,
+            'from_name' => $fromUser['userName'],
+            'to_phone' => $toPhone,
+            'to_name' => $toUser['userName'],
+            'message' => $message,
             'status' => 'pending',
-            'requester_phone' => $userPhone,
-            'friendName' => $friendUser['userName'],
-            'requested_at' => date('Y-m-d H:i:s'),
-            'notes' => $notes
+            'sent_at' => $newRequest['sent_at'],
+            'expires_at' => $newRequest['expires_at']
         ];
         
         // Debug: log response data
