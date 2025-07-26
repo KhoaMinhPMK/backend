@@ -102,8 +102,22 @@ try {
     
     if ($existingRequest) {
         if ($existingRequest['from_phone'] === $fromPhone) {
-            // Đã gửi request rồi
-            sendErrorResponse('Friend request already sent and pending', 'Conflict', 409);
+            // Đã gửi request rồi - trả về thông tin để hiển thị modal
+            sendSuccessResponse([
+                'alreadySent' => true,
+                'canCancel' => true,
+                'message' => 'Friend request already sent',
+                'existingRequest' => [
+                    'id' => $existingRequest['id'],
+                    'from_phone' => $existingRequest['from_phone'],
+                    'to_phone' => $existingRequest['to_phone'],
+                    'to_name' => $toUser['userName'],
+                    'message' => $existingRequest['message'],
+                    'sent_at' => $existingRequest['sent_at'],
+                    'expires_at' => $existingRequest['expires_at']
+                ]
+            ], 'Friend request already sent');
+            exit;
         } else {
             // Người kia đã gửi request cho mình → có thể accept luôn
             sendSuccessResponse([

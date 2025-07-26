@@ -112,3 +112,4 @@ try {
     sendErrorResponse('Server error: ' . $e->getMessage(), 'Internal server error', 500);
 }
 ?>
+
