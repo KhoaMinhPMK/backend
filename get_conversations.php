@@ -42,38 +42,13 @@ try {
         exit;
     }
     
-    error_log("🔍 get_conversations.php - Building SQL query");
+    error_log("🔍 get_conversations.php - Building simple SQL query");
     
-    // Lấy tất cả conversations mà user tham gia
-    $sql = "
-        SELECT 
-            c.id,
-            c.participant1_phone,
-            c.participant2_phone,
-            c.last_activity,
-            -- Xác định người tham gia khác
-            CASE 
-                WHEN c.participant1_phone = ? THEN c.participant2_phone
-                ELSE c.participant1_phone
-            END as other_participant_phone,
-            -- Lấy tên người tham gia khác
-            CASE 
-                WHEN c.participant1_phone = ? THEN u2.userName
-                ELSE u1.userName
-            END as other_participant_name,
-            -- Lấy tin nhắn cuối cùng
-            m.message_text as last_message,
-            m.sent_at as last_message_time
-        FROM conversations c
-        LEFT JOIN user u1 ON c.participant1_phone = u1.phone
-        LEFT JOIN user u2 ON c.participant2_phone = u2.phone
-        LEFT JOIN messages m ON c.last_message_id = m.id
-        WHERE c.participant1_phone = ? OR c.participant2_phone = ?
-        ORDER BY c.last_activity DESC
-    ";
+    // Đơn giản: Lấy tất cả conversations mà user tham gia
+    $sql = "SELECT * FROM conversations WHERE participant1_phone = ? OR participant2_phone = ? ORDER BY last_activity DESC";
     
     error_log("🔍 get_conversations.php - SQL query: " . $sql);
-    error_log("🔍 get_conversations.php - Parameters: " . json_encode([$userPhone, $userPhone, $userPhone, $userPhone]));
+    error_log("🔍 get_conversations.php - Parameters: " . json_encode([$userPhone, $userPhone]));
     
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
@@ -82,7 +57,7 @@ try {
         exit;
     }
     
-    $executeResult = $stmt->execute([$userPhone, $userPhone, $userPhone, $userPhone]);
+    $executeResult = $stmt->execute([$userPhone, $userPhone]);
     if (!$executeResult) {
         error_log("❌ get_conversations.php - SQL execute failed: " . json_encode($stmt->errorInfo()));
         sendErrorResponse('Database execute error', 'Internal server error', 500);
@@ -94,16 +69,19 @@ try {
     
     error_log("🔍 get_conversations.php - Formatting conversations data");
     
-    // Format dữ liệu trả về
+    // Format dữ liệu trả về - đơn giản
     $formattedConversations = [];
     foreach ($conversations as $conv) {
+        // Xác định người tham gia khác
+        $otherParticipantPhone = ($conv['participant1_phone'] == $userPhone) ? $conv['participant2_phone'] : $conv['participant1_phone'];
+        
         $formattedConversations[] = [
             'id' => $conv['id'],
-            'otherParticipantPhone' => $conv['other_participant_phone'],
-            'otherParticipantName' => $conv['other_participant_name'] ?? 'Người dùng',
-            'lastMessage' => $conv['last_message'] ?? 'Chưa có tin nhắn',
-            'lastMessageTime' => $conv['last_message_time'] ?? $conv['last_activity'],
-            'avatar' => $conv['other_participant_name'] ? substr($conv['other_participant_name'], 0, 2) : 'U'
+            'otherParticipantPhone' => $otherParticipantPhone,
+            'otherParticipantName' => 'Người dùng', // Tạm thời để đơn giản
+            'lastMessage' => 'Chưa có tin nhắn',
+            'lastMessageTime' => $conv['last_activity'],
+            'avatar' => 'U'
         ];
     }
     
