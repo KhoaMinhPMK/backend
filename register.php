@@ -31,6 +31,7 @@ try {
     // Chuẩn bị các trường dữ liệu theo cấu trúc bảng user (tất cả đều optional)
     $userName = isset($data['userName']) ? sanitizeInput($data['userName']) : null;
     $email = isset($data['email']) ? sanitizeInput($data['email']) : null;
+    $phone = isset($data['phone']) ? sanitizeInput($data['phone']) : null; // Thêm field phone
     $age = isset($data['age']) ? (int)$data['age'] : null;
     $gender = isset($data['gender']) ? sanitizeInput($data['gender']) : null;
     $blood = isset($data['blood']) ? sanitizeInput($data['blood']) : null;
@@ -49,6 +50,7 @@ try {
     $sql = "INSERT INTO user (
         userName, 
         email, 
+        phone,  // Thêm field phone
         age, 
         gender, 
         blood, 
@@ -60,7 +62,7 @@ try {
         notifications,
         relative_phone,
         home_address
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"; // Thêm 1 dấu ? cho phone
     
     $stmt = $conn->prepare($sql);
     
@@ -73,6 +75,7 @@ try {
     $result = $stmt->execute([
         $userName, 
         $email, 
+        $phone,  // Thêm phone vào parameters
         $age, 
         $gender, 
         $blood, 
@@ -96,6 +99,7 @@ try {
                 'userId' => (int)$userId,
                 'userName' => $userName,
                 'email' => $email,
+                'phone' => $phone,  // Thêm phone vào response
                 'age' => $age,
                 'gender' => $gender,
                 'blood' => $blood,

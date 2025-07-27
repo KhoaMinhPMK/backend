@@ -168,7 +168,7 @@ try {
                     'userId' => (int)$updatedUser['userId'],
                     'userName' => $updatedUser['userName'],
                     'email' => $updatedUser['email'],
-                    'phone' => $updatedUser['phone'],
+                    'phone' => $updatedUser['phone'], // Thêm field phone
                     'age' => $updatedUser['age'],
                     'gender' => $updatedUser['gender'],
                     'blood' => $updatedUser['blood'],

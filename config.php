@@ -209,4 +209,12 @@ function send_socket_notification($to_phone, $payload) {
     
     return $httpcode === 200;
 }
+
+// Function to generate conversation ID
+function generateConversationId($phone1, $phone2) {
+    // Sắp xếp để đảm bảo consistency
+    $sorted = [$phone1, $phone2];
+    sort($sorted);
+    return 'conv_' . md5($sorted[0] . '_' . $sorted[1]);
+}
 ?>

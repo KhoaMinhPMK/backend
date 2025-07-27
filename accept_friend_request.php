@@ -100,6 +100,34 @@ try {
     
     error_log("✅ Friendship records created in both directions");
     
+    // 2.1 TẠO CONVERSATION MỚI
+    $conversationId = generateConversationId($fromPhone, $toPhone);
+    $createConversationSql = "INSERT IGNORE INTO conversations (id, participant1_phone, participant2_phone, last_activity) VALUES (?, ?, ?, NOW())";
+    $stmt = $conn->prepare($createConversationSql);
+
+    // Đảm bảo participant1_phone < participant2_phone để tránh duplicate
+    $participant1 = min($fromPhone, $toPhone);
+    $participant2 = max($fromPhone, $toPhone);
+
+    $stmt->execute([$conversationId, $participant1, $participant2]);
+    error_log("✅ Conversation created with ID: $conversationId");
+
+    // 2.2 TẠO WELCOME MESSAGE
+    $welcomeMessage = "Chào bạn! Chúng ta đã trở thành bạn bè. Hãy bắt đầu trò chuyện nhé! 😊";
+    $createMessageSql = "INSERT INTO messages (conversation_id, sender_phone, receiver_phone, message_text, message_type, requires_friendship, friendship_status, sent_at) VALUES (?, ?, ?, ?, 'text', 1, 'accepted', NOW())";
+    $stmt = $conn->prepare($createMessageSql);
+
+    // Gửi từ người accept đến người gửi lời mời
+    $stmt->execute([$conversationId, $toPhone, $fromPhone, $welcomeMessage]);
+
+    // 2.3 CẬP NHẬT LAST_MESSAGE_ID TRONG CONVERSATIONS
+    $lastMessageId = $conn->lastInsertId();
+    $updateConversationSql = "UPDATE conversations SET last_message_id = ?, last_activity = NOW() WHERE id = ?";
+    $stmt = $conn->prepare($updateConversationSql);
+    $stmt->execute([$lastMessageId, $conversationId]);
+
+    error_log("✅ Welcome message created and conversation updated");
+
     // 3. Create notification for the requester (fromPhone)
     $notification_data = [
         'type' => 'friend_request_accepted',

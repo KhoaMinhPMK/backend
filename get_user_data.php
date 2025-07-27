@@ -64,7 +64,7 @@ try {
                     'userId' => (int)$user['userId'],
                     'userName' => $user['userName'],
                     'email' => $user['email'],
-                    'phone' => $user['phone'],
+                    'phone' => $user['phone'], // Thêm field phone
                     'age' => $user['age'],
                     'gender' => $user['gender'],
                     'blood' => $user['blood'],
