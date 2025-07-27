@@ -186,7 +186,7 @@ function send_socket_notification($to_phone, $payload) {
     // If running on the same machine for development, you can use 'http://localhost:3000/notify'.
     // For production, use your public domain e.g., 'https://chat.viegrand.site/notify'.
     //
-    $nodeServerUrl = 'http://localhost:3000/notify'; 
+    $nodeServerUrl = 'https://chat.viegrand.site/notify'; 
     $secretKey = 'viegrand_super_secret_key_for_php_2025'; // Must match the key in server.js
 
     $data = [

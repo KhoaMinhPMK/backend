@@ -66,33 +66,53 @@ try {
     
     error_log("✅ send_message.php - Conversation validated");
     
-    // Insert message into database
-    $insertSql = "INSERT INTO messages (conversation_id, sender_phone, receiver_phone, message_text, message_type, requires_friendship, friendship_status, sent_at) VALUES (?, ?, ?, ?, 'text', 1, 'friends', NOW())";
-    $insertStmt = $conn->prepare($insertSql);
+    // Start transaction
+    $conn->beginTransaction();
+    error_log("🔍 send_message.php - Transaction started");
     
-    if (!$insertStmt) {
-        error_log("❌ send_message.php - SQL prepare failed: " . json_encode($conn->errorInfo()));
-        sendErrorResponse('Database prepare error', 'Internal server error', 500);
+    try {
+        // Insert message into database
+        $insertSql = "INSERT INTO messages (conversation_id, sender_phone, receiver_phone, message_text, message_type, requires_friendship, friendship_status, sent_at) VALUES (?, ?, ?, ?, 'text', 1, 'stranger', NOW())";
+        $insertStmt = $conn->prepare($insertSql);
+        
+        if (!$insertStmt) {
+            error_log("❌ send_message.php - SQL prepare failed: " . json_encode($conn->errorInfo()));
+            throw new Exception('Database prepare error');
+        }
+        
+        $insertResult = $insertStmt->execute([$conversationId, $senderPhone, $receiverPhone, $messageText]);
+        
+        if (!$insertResult) {
+            error_log("❌ send_message.php - SQL execute failed: " . json_encode($insertStmt->errorInfo()));
+            throw new Exception('Database execute error');
+        }
+        
+        $messageId = $conn->lastInsertId();
+        error_log("✅ send_message.php - Message inserted with ID: " . $messageId);
+        
+        // Update conversation last_message_id and last_activity
+        $updateConversationSql = "UPDATE conversations SET last_message_id = ?, last_activity = NOW() WHERE id = ?";
+        $updateStmt = $conn->prepare($updateConversationSql);
+        $updateResult = $updateStmt->execute([$messageId, $conversationId]);
+        
+        if (!$updateResult) {
+            error_log("❌ send_message.php - Update conversation failed: " . json_encode($updateStmt->errorInfo()));
+            throw new Exception('Update conversation error');
+        }
+        
+        error_log("✅ send_message.php - Conversation updated");
+        
+        // Commit transaction
+        $conn->commit();
+        error_log("✅ send_message.php - Transaction committed successfully");
+        
+    } catch (Exception $e) {
+        // Rollback transaction on error
+        $conn->rollback();
+        error_log("❌ send_message.php - Transaction rolled back: " . $e->getMessage());
+        sendErrorResponse('Database error: ' . $e->getMessage(), 'Internal server error', 500);
         exit;
     }
-    
-    $insertResult = $insertStmt->execute([$conversationId, $senderPhone, $receiverPhone, $messageText]);
-    
-    if (!$insertResult) {
-        error_log("❌ send_message.php - SQL execute failed: " . json_encode($insertStmt->errorInfo()));
-        sendErrorResponse('Database execute error', 'Internal server error', 500);
-        exit;
-    }
-    
-    $messageId = $conn->lastInsertId();
-    error_log("✅ send_message.php - Message inserted with ID: " . $messageId);
-    
-    // Update conversation last_message_id and last_activity
-    $updateConversationSql = "UPDATE conversations SET last_message_id = ?, last_activity = NOW() WHERE id = ?";
-    $updateStmt = $conn->prepare($updateConversationSql);
-    $updateStmt->execute([$messageId, $conversationId]);
-    
-    error_log("✅ send_message.php - Conversation updated");
     
     // Get full message data for response
     $getMessageSql = "SELECT * FROM messages WHERE id = ?";
@@ -135,6 +155,13 @@ try {
 } catch (Exception $e) {
     error_log('❌ send_message.php - Exception caught: ' . $e->getMessage());
     error_log('❌ send_message.php - Stack trace: ' . $e->getTraceAsString());
+    
+    // Check if we're in a transaction and rollback if needed
+    if ($conn->inTransaction()) {
+        $conn->rollback();
+        error_log('❌ send_message.php - Transaction rolled back due to exception');
+    }
+    
     sendErrorResponse('Server error: ' . $e->getMessage(), 'Internal server error', 500);
 }
 ?> 
