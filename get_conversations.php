@@ -30,7 +30,7 @@ try {
     // Log request để debug
     error_log('🔄 Get conversations request for phone: ' . $userPhone);
     
-    // Query lấy conversations với last message info
+    // Query lấy conversations (Phase 1: không có messages)
     // Conversation ID format: smaller_phone|larger_phone để consistent
     $sql = "
         SELECT 
@@ -38,16 +38,15 @@ try {
             c.participant1_phone,
             c.participant2_phone,
             c.last_activity,
-            m.content as last_message,
-            m.sender_phone,
-            m.created_at as last_message_time,
+            NULL as last_message,
+            NULL as sender_phone,
+            NULL as last_message_time,
             u.userName as other_user_name,
             CASE 
                 WHEN c.participant1_phone = ? THEN c.participant2_phone
                 ELSE c.participant1_phone 
             END as other_user_phone
         FROM conversations c
-        LEFT JOIN messages m ON c.last_message_id = m.id
         LEFT JOIN user u ON (
             CASE 
                 WHEN c.participant1_phone = ? THEN c.participant2_phone = u.phone
