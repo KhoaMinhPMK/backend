@@ -43,8 +43,12 @@ try {
     
     echo json_encode([
         'success' => true,
-        'messages' => $messages,
-        'count' => count($messages)
+        'data' => [
+            'messages' => $messages,
+            'conversation' => null,
+            'total' => count($messages)
+        ],
+        'message' => 'Lấy tin nhắn thành công'
     ]);
     
 } catch (Exception $e) {
