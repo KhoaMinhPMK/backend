@@ -17,12 +17,18 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 }
 
 try {
+    error_log("🔍 persistent_get_messages.php - Request received");
+    error_log("🔍 persistent_get_messages.php - GET params: " . json_encode($_GET));
+    
     $conversationId = $_GET['conversation_id'] ?? '';
     $userPhone = $_GET['user_phone'] ?? '';
     $limit = (int)($_GET['limit'] ?? 50);
     $offset = (int)($_GET['offset'] ?? 0);
     
+    error_log("🔍 persistent_get_messages.php - Parsed params: conversationId=$conversationId, userPhone=$userPhone, limit=$limit, offset=$offset");
+    
     if (empty($conversationId) || empty($userPhone)) {
+        error_log("❌ persistent_get_messages.php - Missing required parameters");
         sendErrorResponse('Missing required parameters: conversation_id, user_phone');
     }
     
@@ -51,7 +57,10 @@ try {
         LIMIT ? OFFSET ?
     ");
     
-    $stmt->execute([$conversationId, $limit, $offset]);
+    $stmt->bindParam(1, $conversationId, PDO::PARAM_STR);
+    $stmt->bindParam(2, $limit, PDO::PARAM_INT);
+    $stmt->bindParam(3, $offset, PDO::PARAM_INT);
+    $stmt->execute();
     $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Xử lý dữ liệu
