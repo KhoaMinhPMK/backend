@@ -31,7 +31,7 @@ try {
         sendErrorResponse('Missing required fields: conversation_id, user_phone');
     }
     
-    $pdo = getConnection();
+    $pdo = getDatabaseConnection();
     
     if (!empty($messageIds)) {
         // Đánh dấu specific messages

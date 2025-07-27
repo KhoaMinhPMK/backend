@@ -24,7 +24,7 @@ try {
         sendErrorResponse('Missing required parameter: user_phone');
     }
     
-    $pdo = getConnection();
+    $pdo = getDatabaseConnection();
     
     if (!empty($conversationId)) {
         // Lấy unread count cho specific conversation

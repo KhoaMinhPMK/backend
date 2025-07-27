@@ -23,7 +23,7 @@ try {
         sendErrorResponse('Missing required parameter: user_phone');
     }
     
-    $pdo = getConnection();
+    $pdo = getDatabaseConnection();
     
     // Lấy conversations của user
     $stmt = $pdo->prepare("

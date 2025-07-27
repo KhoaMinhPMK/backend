@@ -26,7 +26,7 @@ try {
         sendErrorResponse('Missing required parameters: conversation_id, user_phone');
     }
     
-    $pdo = getConnection();
+    $pdo = getDatabaseConnection();
     
     // Lấy tin nhắn từ conversation
     $stmt = $pdo->prepare("
