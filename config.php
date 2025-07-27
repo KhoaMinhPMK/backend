@@ -15,12 +15,22 @@ define('JWT_ALGORITHM', 'HS256');
 
 // Response helper functions
 function sendSuccessResponse($data, $message = 'Success', $statusCode = 200) {
+    error_log("🔍 sendSuccessResponse - Called with data: " . json_encode($data));
+    error_log("🔍 sendSuccessResponse - Message: " . $message);
+    error_log("🔍 sendSuccessResponse - Status code: " . $statusCode);
+    
     http_response_code($statusCode);
-    echo json_encode([
+    $response = [
         'success' => true,
         'data' => $data,
         'message' => $message
-    ]);
+    ];
+    
+    $jsonResponse = json_encode($response);
+    error_log("🔍 sendSuccessResponse - JSON response: " . $jsonResponse);
+    
+    echo $jsonResponse;
+    error_log("✅ sendSuccessResponse - Response sent successfully");
     exit();
 }
 
