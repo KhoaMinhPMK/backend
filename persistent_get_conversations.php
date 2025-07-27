@@ -17,9 +17,15 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 }
 
 try {
+    error_log("🔍 persistent_get_conversations.php - Request received");
+    error_log("🔍 persistent_get_conversations.php - GET params: " . json_encode($_GET));
+    
     $userPhone = $_GET['user_phone'] ?? '';
     
+    error_log("🔍 persistent_get_conversations.php - Parsed userPhone: $userPhone");
+    
     if (empty($userPhone)) {
+        error_log("❌ persistent_get_conversations.php - Missing user_phone parameter");
         sendErrorResponse('Missing required parameter: user_phone');
     }
     
@@ -40,7 +46,7 @@ try {
                 WHEN c.participant1_phone = ? THEN c.participant2_phone
                 ELSE c.participant1_phone
             END as other_participant_phone,
-            u.name as other_participant_name,
+            u.userName as other_participant_name,
             (SELECT COUNT(*) FROM persistent_messages 
              WHERE conversation_id = c.id 
              AND receiver_phone = ? 
