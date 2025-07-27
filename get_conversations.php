@@ -69,19 +69,38 @@ try {
     
     error_log("🔍 get_conversations.php - Formatting conversations data");
     
-    // Format dữ liệu trả về - đơn giản
+    // Format dữ liệu trả về - lấy tên thật từ database
     $formattedConversations = [];
     foreach ($conversations as $conv) {
         // Xác định người tham gia khác
         $otherParticipantPhone = ($conv['participant1_phone'] == $userPhone) ? $conv['participant2_phone'] : $conv['participant1_phone'];
         
+        // Lấy thông tin người tham gia khác từ database
+        $getUserNameSql = "SELECT userName FROM user WHERE phone = ? LIMIT 1";
+        $userStmt = $conn->prepare($getUserNameSql);
+        $userStmt->execute([$otherParticipantPhone]);
+        $otherUser = $userStmt->fetch(PDO::FETCH_ASSOC);
+        
+        // Tạo avatar từ tên (logic từ searchfriend.php)
+        $userName = $otherUser ? $otherUser['userName'] : 'Người dùng';
+        $nameParts = explode(' ', trim($userName));
+        $avatar = '';
+        
+        if (count($nameParts) >= 2) {
+            // Nếu có ít nhất 2 từ, lấy chữ đầu của 2 từ đầu
+            $avatar = mb_substr($nameParts[0], 0, 1, 'UTF-8') . mb_substr($nameParts[1], 0, 1, 'UTF-8');
+        } else {
+            // Nếu chỉ có 1 từ, lấy 2 chữ đầu của từ đó
+            $avatar = mb_substr($userName, 0, 2, 'UTF-8');
+        }
+        
         $formattedConversations[] = [
             'id' => $conv['id'],
             'otherParticipantPhone' => $otherParticipantPhone,
-            'otherParticipantName' => 'Người dùng', // Tạm thời để đơn giản
+            'otherParticipantName' => $userName,
             'lastMessage' => 'Chưa có tin nhắn',
             'lastMessageTime' => $conv['last_activity'],
-            'avatar' => 'U'
+            'avatar' => strtoupper($avatar) // Viết hoa như searchfriend.php
         ];
     }
     
