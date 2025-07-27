@@ -141,7 +141,7 @@ function findOrCreateConversation($pdo, $phone1, $phone2) {
 function insertMessage($pdo, $conversation_id, $sender_phone, $receiver_phone, $message_text, $message_type, $file_url) {
     $stmt = $pdo->prepare("
         INSERT INTO messages (conversation_id, sender_phone, receiver_phone, message_text, message_type, file_url, requires_friendship, friendship_status) 
-        VALUES (?, ?, ?, ?, ?, ?, 1, 'friends')
+        VALUES (?, ?, ?, ?, ?, ?, 1, '')
     ");
     $stmt->execute([$conversation_id, $sender_phone, $receiver_phone, $message_text, $message_type, $file_url]);
     
@@ -157,18 +157,5 @@ function updateConversationLastMessage($pdo, $conversation_id, $message_id) {
     $stmt->execute([$message_id, $conversation_id]);
 }
 
-function sendErrorResponse($status_code, $message) {
-    http_response_code($status_code);
-    echo json_encode([
-        'success' => false,
-        'error' => [
-            'statusCode' => $status_code,
-            'message' => $message,
-            'error' => 'Bad request',
-            'timestamp' => date('Y-m-d H:i:s'),
-            'path' => '/backend/send_message_v2.php',
-            'method' => 'POST'
-        ]
-    ]);
-}
+// Function sendErrorResponse đã được định nghĩa trong config.php
 ?> 
