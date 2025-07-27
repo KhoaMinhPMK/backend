@@ -100,7 +100,28 @@ try {
     
     error_log("✅ Friendship records created in both directions");
     
-    // 3. Create notification for the requester (fromPhone)
+    // 3. Create conversation for both users
+    $phone1 = min($fromPhone, $toPhone);
+    $phone2 = max($fromPhone, $toPhone);
+    $conversationId = $phone1 . '|' . $phone2;
+    
+    // Check if conversation already exists
+    $checkConvSql = "SELECT id FROM conversations WHERE id = ?";
+    $stmt = $conn->prepare($checkConvSql);
+    $stmt->execute([$conversationId]);
+    $existingConv = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$existingConv) {
+        // Create new conversation
+        $createConvSql = "INSERT INTO conversations (id, participant1_phone, participant2_phone, last_activity, created_at) VALUES (?, ?, ?, NOW(), NOW())";
+        $stmt = $conn->prepare($createConvSql);
+        $stmt->execute([$conversationId, $phone1, $phone2]);
+        error_log("✅ New conversation created: $conversationId");
+    } else {
+        error_log("✅ Conversation already exists: $conversationId");
+    }
+    
+    // 4. Create notification for the requester (fromPhone)
     $notification_data = [
         'type' => 'friend_request_accepted',
         'title' => 'Lời mời kết bạn được chấp nhận',
@@ -143,6 +164,8 @@ try {
     
     $responseData = [
         'friendship_created' => true,
+        'conversation_created' => !$existingConv,
+        'conversation_id' => $conversationId,
         'notification_sent' => isset($success) ? $success : false,
         'accepter_name' => $toUser['userName'],
         'requester_name' => $fromUser['userName']
