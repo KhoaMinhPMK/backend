@@ -10,23 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require_once 'config.php';
 
-function sendSuccessResponse($data = null, $message = 'Success') {
-    echo json_encode([
-        'success' => true,
-        'message' => $message,
-        'data' => $data
-    ]);
-    exit;
-}
-
-function sendErrorResponse($message = 'Error', $status = 400) {
-    http_response_code($status);
-    echo json_encode([
-        'success' => false,
-        'message' => $message
-    ]);
-    exit;
-}
+// Sử dụng functions từ config.php
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     sendErrorResponse('Method not allowed', 405);
