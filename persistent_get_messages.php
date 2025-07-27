@@ -47,8 +47,8 @@ try {
             m.is_read,
             m.sent_at,
             m.read_at,
-            u1.name as sender_name,
-            u2.name as receiver_name
+            u1.userName as sender_name,
+            u2.userName as receiver_name
         FROM persistent_messages m
         LEFT JOIN user u1 ON m.sender_phone = u1.phone
         LEFT JOIN user u2 ON m.receiver_phone = u2.phone
