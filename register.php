@@ -50,7 +50,7 @@ try {
     $sql = "INSERT INTO user (
         userName, 
         email, 
-        phone,  // Thêm field phone
+        phone,
         age, 
         gender, 
         blood, 
@@ -62,7 +62,7 @@ try {
         notifications,
         relative_phone,
         home_address
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"; // Thêm 1 dấu ? cho phone
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     
     $stmt = $conn->prepare($sql);
     
