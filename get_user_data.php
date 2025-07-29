@@ -88,6 +88,11 @@ try {
                     'weight' => isset($user['weight']) && $user['weight'] ? (float)$user['weight'] : null,
                     'smoking_status' => $user['smoking_status'],
                     'stroke' => (int)$user['stroke'],
+                    // Blood pressure fields
+                    'blood_pressure_systolic' => $user['blood_pressure_systolic'] ? (int)$user['blood_pressure_systolic'] : null,
+                    'blood_pressure_diastolic' => $user['blood_pressure_diastolic'] ? (int)$user['blood_pressure_diastolic'] : null,
+                    'heart_rate' => $user['heart_rate'] ? (int)$user['heart_rate'] : null,
+                    'last_health_check' => $user['last_health_check'],
                     'created_at' => $user['created_at'],
                     'updated_at' => $user['updated_at']
                 ]

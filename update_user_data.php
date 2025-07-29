@@ -95,7 +95,12 @@ try {
         'height' => 'height',
         'weight' => 'weight',
         'smoking_status' => 'smoking_status',
-        'stroke' => 'stroke'
+        'stroke' => 'stroke',
+        // Blood pressure fields
+        'blood_pressure_systolic' => 'blood_pressure_systolic',
+        'blood_pressure_diastolic' => 'blood_pressure_diastolic',
+        'heart_rate' => 'heart_rate',
+        'last_health_check' => 'last_health_check'
     ];
     
     foreach ($allowedFields as $jsonKey => $dbField) {
@@ -192,6 +197,11 @@ try {
                     'weight' => $updatedUser['weight'] ? (float)$updatedUser['weight'] : null,
                     'smoking_status' => $updatedUser['smoking_status'],
                     'stroke' => (int)$updatedUser['stroke'],
+                    // Blood pressure fields
+                    'blood_pressure_systolic' => $updatedUser['blood_pressure_systolic'] ? (int)$updatedUser['blood_pressure_systolic'] : null,
+                    'blood_pressure_diastolic' => $updatedUser['blood_pressure_diastolic'] ? (int)$updatedUser['blood_pressure_diastolic'] : null,
+                    'heart_rate' => $updatedUser['heart_rate'] ? (int)$updatedUser['heart_rate'] : null,
+                    'last_health_check' => $updatedUser['last_health_check'],
                     'created_at' => $updatedUser['created_at'],
                     'updated_at' => $updatedUser['updated_at']
                 ]
