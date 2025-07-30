@@ -19,14 +19,15 @@ try {
     // Kết nối database
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4", DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    
     // Get JSON input
     $input = file_get_contents('php://input');
     $data = json_decode($input, true);
     
-    error_log("send_message_v2 - Input received: " . $input);
+    error_log("send_message_complete - Input received: " . $input);
     
     if (!$data) {
-        error_log("send_message_v2 - Invalid JSON input");
+        error_log("send_message_complete - Invalid JSON input");
         sendErrorResponse(400, "Invalid JSON format");
         exit();
     }
@@ -35,7 +36,7 @@ try {
     $required_fields = ['sender_phone', 'receiver_phone', 'message_text'];
     foreach ($required_fields as $field) {
         if (!isset($data[$field]) || empty($data[$field])) {
-            error_log("send_message_v2 - Missing required field: " . $field);
+            error_log("send_message_complete - Missing required field: " . $field);
             sendErrorResponse(400, "Missing required field: " . $field);
             exit();
         }
@@ -47,65 +48,56 @@ try {
     $message_type = isset($data['message_type']) ? $data['message_type'] : 'text';
     $file_url = isset($data['file_url']) ? $data['file_url'] : null;
     
-    error_log("send_message_v2 - Validated data: sender=$sender_phone, receiver=$receiver_phone, text=$message_text");
+    error_log("send_message_complete - Validated data: sender=$sender_phone, receiver=$receiver_phone, text=$message_text");
     
     // Start transaction
     $pdo->beginTransaction();
-    error_log("send_message_v2 - Transaction started");
+    error_log("send_message_complete - Transaction started");
     
     try {
         // Step 1: Find or create conversation
         $conversation_id = findOrCreateConversation($pdo, $sender_phone, $receiver_phone);
-        error_log("send_message_v2 - Conversation ID: $conversation_id");
+        error_log("send_message_complete - Conversation ID: $conversation_id");
         
-        // Step 2: Insert message
+        // Step 2: Insert message into database
         $message_id = insertMessage($pdo, $conversation_id, $sender_phone, $receiver_phone, $message_text, $message_type, $file_url);
-        error_log("send_message_v2 - Message inserted with ID: $message_id");
+        error_log("send_message_complete - Message inserted with ID: $message_id");
         
         // Step 3: Update conversation with last message
         updateConversationLastMessage($pdo, $conversation_id, $message_id);
-        error_log("send_message_v2 - Conversation updated");
+        error_log("send_message_complete - Conversation updated");
         
         // Commit transaction
         $pdo->commit();
-        error_log("send_message_v2 - Transaction committed successfully");
+        error_log("send_message_complete - Database transaction committed successfully");
         
-        // Step 4: Send socket notification
-        $notification_data = [
-            'type' => 'new_message',
-            'conversation_id' => $conversation_id,
-            'message_id' => $message_id,
-            'sender_phone' => $sender_phone,
-            'receiver_phone' => $receiver_phone,
-            'message_text' => $message_text,
-            'sent_at' => date('Y-m-d H:i:s')
-        ];
-        
-        send_socket_notification($receiver_phone, $notification_data);
-        error_log("send_message_v2 - Socket notification sent");
+        // Step 4: Send to Socket Server for real-time delivery
+        $socket_result = sendToSocketServer($sender_phone, $receiver_phone, $message_text, $conversation_id, $message_id);
+        error_log("send_message_complete - Socket server result: " . ($socket_result ? 'success' : 'failed'));
         
         // Return success response
         $response = [
             'success' => true,
-            'message' => 'Message sent successfully',
+            'message' => 'Message sent successfully to database and socket server',
             'data' => [
                 'message_id' => $message_id,
                 'conversation_id' => $conversation_id,
-                'sent_at' => date('Y-m-d H:i:s')
+                'sent_at' => date('Y-m-d H:i:s'),
+                'socket_delivered' => $socket_result
             ]
         ];
         
-        error_log("send_message_v2 - Success response: " . json_encode($response));
+        error_log("send_message_complete - Success response: " . json_encode($response));
         echo json_encode($response);
         
     } catch (Exception $e) {
         $pdo->rollback();
-        error_log("send_message_v2 - Transaction rolled back: " . $e->getMessage());
+        error_log("send_message_complete - Transaction rolled back: " . $e->getMessage());
         sendErrorResponse(500, "Database error: " . $e->getMessage());
     }
     
 } catch (Exception $e) {
-    error_log("send_message_v2 - General error: " . $e->getMessage());
+    error_log("send_message_complete - General error: " . $e->getMessage());
     sendErrorResponse(500, "Server error: " . $e->getMessage());
 }
 
@@ -124,7 +116,7 @@ function findOrCreateConversation($pdo, $phone1, $phone2) {
     $conversation = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if ($conversation) {
-        error_log("send_message_v2 - Found existing conversation: " . $conversation['id']);
+        error_log("send_message_complete - Found existing conversation: " . $conversation['id']);
         return $conversation['id'];
     }
     
@@ -137,7 +129,7 @@ function findOrCreateConversation($pdo, $phone1, $phone2) {
     ");
     $stmt->execute([$conversation_id, $participant1, $participant2]);
     
-    error_log("send_message_v2 - Created new conversation: $conversation_id");
+    error_log("send_message_complete - Created new conversation: $conversation_id");
     return $conversation_id;
 }
 
@@ -158,6 +150,49 @@ function updateConversationLastMessage($pdo, $conversation_id, $message_id) {
         WHERE id = ?
     ");
     $stmt->execute([$message_id, $conversation_id]);
+}
+
+function sendToSocketServer($sender_phone, $receiver_phone, $message_text, $conversation_id, $message_id) {
+    // IMPORTANT: Use the correct IP address or domain of your Node.js server.
+    // If running on the same machine for development, you can use 'http://localhost:3000/send-message'.
+    // For production, use your public domain e.g., 'https://chat.viegrand.site/send-message'.
+    $socketServerUrl = 'https://chat.viegrand.site/send-message'; 
+    $secretKey = 'viegrand_super_secret_key_for_php_2025'; // Must match the key in server.js
+
+    $socketData = [
+        'sender_phone' => $sender_phone,
+        'receiver_phone' => $receiver_phone,
+        'message_text' => $message_text,
+        'conversation_id' => $conversation_id,
+        'message_id' => $message_id,
+        'timestamp' => date('Y-m-d H:i:s'),
+        'secret' => $secretKey,
+    ];
+
+    $ch = curl_init($socketServerUrl);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($socketData));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Content-Type: application/json',
+        'Content-Length: ' . strlen(json_encode($socketData))
+    ]);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 5); // 5-second timeout
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // For development only
+
+    $response = curl_exec($ch);
+    $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $error = curl_error($ch);
+    curl_close($ch);
+
+    // Log the result for debugging
+    if ($error) {
+        error_log("send_message_complete - cURL Error for Socket Server: " . $error);
+        return false;
+    }
+
+    error_log("send_message_complete - Socket server response. Status: $httpcode. Response: $response");
+    
+    return $httpcode === 200;
 }
 
 // Function sendErrorResponse đã được định nghĩa trong config.php
