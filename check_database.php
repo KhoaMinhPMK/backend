@@ -40,25 +40,25 @@ try {
         $result['tables']['emergency_contacts']['record_count'] = $count;
     }
     
-    // Kiểm tra bảng users
-    $stmt = $pdo->query("SHOW TABLES LIKE 'users'");
-    $usersTableExists = $stmt->rowCount() > 0;
+    // Kiểm tra bảng user
+    $stmt = $pdo->query("SHOW TABLES LIKE 'user'");
+    $userTableExists = $stmt->rowCount() > 0;
     
-    $result['tables']['users'] = [
-        'exists' => $usersTableExists
+    $result['tables']['user'] = [
+        'exists' => $userTableExists
     ];
     
-    if ($usersTableExists) {
+    if ($userTableExists) {
         // Kiểm tra có user nào không
-        $stmt = $pdo->query("SELECT COUNT(*) as count FROM users");
+        $stmt = $pdo->query("SELECT COUNT(*) as count FROM user");
         $userCount = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
-        $result['tables']['users']['record_count'] = $userCount;
+        $result['tables']['user']['record_count'] = $userCount;
         
         if ($userCount > 0) {
             // Lấy một số email mẫu
-            $stmt = $pdo->query("SELECT email FROM users LIMIT 5");
+            $stmt = $pdo->query("SELECT email FROM user LIMIT 5");
             $emails = $stmt->fetchAll(PDO::FETCH_COLUMN);
-            $result['tables']['users']['sample_emails'] = $emails;
+            $result['tables']['user']['sample_emails'] = $emails;
         }
     }
     

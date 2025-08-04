@@ -68,17 +68,27 @@ try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8", DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
-    // Kiểm tra xem user có tồn tại không
+    // Kiểm tra xem user có tồn tại không (tạm thời bỏ qua nếu bảng users không tồn tại)
     error_log("Emergency API - Checking if user exists: $userEmail");
-    $checkUser = $pdo->prepare("SELECT id FROM users WHERE email = ?");
-    $checkUser->execute([$userEmail]);
     
-    if (!$checkUser->fetch()) {
-        error_log("Emergency API - User not found: $userEmail");
-        throw new Exception('User not found');
+    try {
+        $checkUser = $pdo->prepare("SELECT userId FROM user WHERE email = ?");
+        $checkUser->execute([$userEmail]);
+        
+        if (!$checkUser->fetch()) {
+            error_log("Emergency API - User not found: $userEmail");
+            throw new Exception('User not found');
+        }
+        
+        error_log("Emergency API - User found, proceeding with save");
+    } catch (PDOException $e) {
+        // Nếu bảng user không tồn tại, bỏ qua validation
+        if (strpos($e->getMessage(), "doesn't exist") !== false) {
+            error_log("Emergency API - User table doesn't exist, skipping user validation");
+        } else {
+            throw $e;
+        }
     }
-    
-    error_log("Emergency API - User found, proceeding with save");
     
     // Lưu hoặc cập nhật số khẩn cấp
     $sql = "INSERT INTO emergency_contacts (user_email, emergency_number, contact_name) 
