@@ -40,21 +40,27 @@ try {
     $contactName = $input['contact_name'] ?? 'Số khẩn cấp';
     
     // Validate dữ liệu
+    error_log("Emergency API - Validating data: email='$userEmail', number='$emergencyNumber', name='$contactName'");
+    
     if (empty($userEmail)) {
+        error_log("Emergency API - Email is empty");
         throw new Exception('Email is required');
     }
     
     if (empty($emergencyNumber)) {
+        error_log("Emergency API - Emergency number is empty");
         throw new Exception('Emergency number is required');
     }
     
     // Validate email format
     if (!filter_var($userEmail, FILTER_VALIDATE_EMAIL)) {
+        error_log("Emergency API - Invalid email format: $userEmail");
         throw new Exception('Invalid email format');
     }
     
     // Validate phone number (basic validation)
     if (!preg_match('/^[0-9+\-\s()]{10,20}$/', $emergencyNumber)) {
+        error_log("Emergency API - Invalid phone number format: $emergencyNumber");
         throw new Exception('Invalid phone number format');
     }
     
@@ -63,12 +69,16 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
     // Kiểm tra xem user có tồn tại không
+    error_log("Emergency API - Checking if user exists: $userEmail");
     $checkUser = $pdo->prepare("SELECT id FROM users WHERE email = ?");
     $checkUser->execute([$userEmail]);
     
     if (!$checkUser->fetch()) {
+        error_log("Emergency API - User not found: $userEmail");
         throw new Exception('User not found');
     }
+    
+    error_log("Emergency API - User found, proceeding with save");
     
     // Lưu hoặc cập nhật số khẩn cấp
     $sql = "INSERT INTO emergency_contacts (user_email, emergency_number, contact_name) 
