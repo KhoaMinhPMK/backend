@@ -18,12 +18,22 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 try {
+    // Log request details
+    error_log("Emergency API - Request method: " . $_SERVER['REQUEST_METHOD']);
+    error_log("Emergency API - Content-Type: " . ($_SERVER['CONTENT_TYPE'] ?? 'not set'));
+    
     // Lấy dữ liệu từ request
-    $input = json_decode(file_get_contents('php://input'), true);
+    $rawInput = file_get_contents('php://input');
+    error_log("Emergency API - Raw input: " . $rawInput);
+    
+    $input = json_decode($rawInput, true);
     
     if (!$input) {
-        throw new Exception('Invalid JSON data');
+        error_log("Emergency API - JSON decode failed: " . json_last_error_msg());
+        throw new Exception('Invalid JSON data: ' . json_last_error_msg());
     }
+    
+    error_log("Emergency API - Parsed input: " . json_encode($input));
     
     $userEmail = $input['user_email'] ?? '';
     $emergencyNumber = $input['emergency_number'] ?? '';
