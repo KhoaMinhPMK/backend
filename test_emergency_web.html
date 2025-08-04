@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergency Contact API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, button { padding: 10px; margin: 5px; }
+        input { width: 300px; }
+        button { background: #007AFF; color: white; border: none; cursor: pointer; }
+        button:hover { background: #0056CC; }
+        .result { margin-top: 20px; padding: 15px; border-radius: 5px; }
+        .success { background: #D4EDDA; color: #155724; border: 1px solid #C3E6CB; }
+        .error { background: #F8D7DA; color: #721C24; border: 1px solid #F5C6CB; }
+        .info { background: #D1ECF1; color: #0C5460; border: 1px solid #BEE5EB; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Emergency Contact API Test</h1>
+        
+        <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" id="email" value="pmkkhoaminh@gmail.com" placeholder="Enter email">
+        </div>
+        
+        <div class="form-group">
+            <label for="phone">Emergency Phone:</label>
+            <input type="text" id="phone" value="0902716951" placeholder="Enter phone number">
+        </div>
+        
+        <div class="form-group">
+            <label for="name">Contact Name:</label>
+            <input type="text" id="name" value="Số khẩn cấp" placeholder="Enter contact name">
+        </div>
+        
+        <div class="form-group">
+            <button onclick="testSaveAPI()">Test Save API</button>
+            <button onclick="testGetAPI()">Test Get API</button>
+            <button onclick="testBoth()">Test Both</button>
+        </div>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://viegrand.site/backend';
+        
+        function showResult(message, type = 'info') {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `<div class="result ${type}">${message}</div>`;
+        }
+        
+        async function testSaveAPI() {
+            const email = document.getElementById('email').value;
+            const phone = document.getElementById('phone').value;
+            const name = document.getElementById('name').value;
+            
+            if (!email || !phone) {
+                showResult('Please fill in email and phone', 'error');
+                return;
+            }
+            
+            const data = {
+                user_email: email,
+                emergency_number: phone,
+                contact_name: name
+            };
+            
+            showResult('Testing Save API...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/save_emergency_contact.php`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.text();
+                
+                showResult(`
+                    <strong>Save API Test Result:</strong><br>
+                    Status: ${response.status} ${response.statusText}<br>
+                    Response: <pre>${result}</pre>
+                `, response.ok ? 'success' : 'error');
+                
+            } catch (error) {
+                showResult(`Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testGetAPI() {
+            const email = document.getElementById('email').value;
+            
+            if (!email) {
+                showResult('Please fill in email', 'error');
+                return;
+            }
+            
+            showResult('Testing Get API...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/get_emergency_contact.php?email=${encodeURIComponent(email)}`);
+                const result = await response.text();
+                
+                showResult(`
+                    <strong>Get API Test Result:</strong><br>
+                    Status: ${response.status} ${response.statusText}<br>
+                    Response: <pre>${result}</pre>
+                `, response.ok ? 'success' : 'error');
+                
+            } catch (error) {
+                showResult(`Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testBoth() {
+            showResult('Testing both APIs...', 'info');
+            
+            // Test Save first
+            await testSaveAPI();
+            
+            // Wait a bit then test Get
+            setTimeout(() => {
+                testGetAPI();
+            }, 1000);
+        }
+        
+        // Auto-test on page load
+        window.onload = function() {
+            showResult('Ready to test Emergency Contact API. Click buttons above to test.', 'info');
+        };
+    </script>
+</body>
+</html> 
