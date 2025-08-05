@@ -35,13 +35,14 @@ try {
         exit;
     }
     
-    // Lấy email từ request (bắt buộc để login)
+    // Lấy email và password từ request (bắt buộc để login)
     $email = isset($data['email']) ? sanitizeInput($data['email']) : null;
+    $password = isset($data['password']) ? $data['password'] : null;
     
-    if (!$email) {
+    if (!$email || !$password) {
         echo json_encode([
             'success' => false,
-            'message' => 'Email is required for login'
+            'message' => 'Email and password are required for login'
         ]);
         exit;
     }
@@ -65,38 +66,47 @@ try {
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if ($user) {
-            // User tồn tại - trả về thông tin user
-            $responseData = [
-                    'user' => [
-                        'userId' => (int)$user['userId'],
-                        'userName' => $user['userName'],
-                        'email' => $user['email'],
-                        'phone' => $user['phone'], // Thêm field phone
-                        'age' => $user['age'],
-                        'gender' => $user['gender'],
-                        'blood' => $user['blood'],
-                        'chronic_diseases' => $user['chronic_diseases'],
-                        'allergies' => $user['allergies'],
-                        'premium_status' => (bool)$user['premium_status'],
-                    'premium_start_date' => $user['premium_start_date'],
-                    'premium_end_date' => $user['premium_end_date'],
-                        'notifications' => (bool)$user['notifications'],
-                        'relative_phone' => $user['relative_phone'],
-                        'home_address' => $user['home_address'],
-                        'created_at' => $user['created_at'],
-                        'updated_at' => $user['updated_at']
-                    ],
-                    'token' => 'jwt_token_' . $user['userId'] . '_' . time()
-            ];
-            
-            // Debug: log response data
-            error_log('Login response: ' . json_encode($responseData));
-            
-            echo json_encode([
-                'success' => true,
-                'message' => 'Login successful',
-                'data' => $responseData
-            ]);
+            // Kiểm tra password
+            if (password_verify($password, $user['password'])) {
+                // Password đúng - trả về thông tin user
+                $responseData = [
+                        'user' => [
+                            'userId' => (int)$user['userId'],
+                            'userName' => $user['userName'],
+                            'email' => $user['email'],
+                            'phone' => $user['phone'], // Thêm field phone
+                            'age' => $user['age'],
+                            'gender' => $user['gender'],
+                            'blood' => $user['blood'],
+                            'chronic_diseases' => $user['chronic_diseases'],
+                            'allergies' => $user['allergies'],
+                            'premium_status' => (bool)$user['premium_status'],
+                        'premium_start_date' => $user['premium_start_date'],
+                        'premium_end_date' => $user['premium_end_date'],
+                            'notifications' => (bool)$user['notifications'],
+                            'relative_phone' => $user['relative_phone'],
+                            'home_address' => $user['home_address'],
+                            'created_at' => $user['created_at'],
+                            'updated_at' => $user['updated_at']
+                        ],
+                        'token' => 'jwt_token_' . $user['userId'] . '_' . time()
+                ];
+                
+                // Debug: log response data
+                error_log('Login response: ' . json_encode($responseData));
+                
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Login successful',
+                    'data' => $responseData
+                ]);
+            } else {
+                // Password sai
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Invalid email or password'
+                ]);
+            }
             
         } else {
             echo json_encode([

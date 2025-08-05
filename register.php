@@ -32,6 +32,7 @@ try {
     $userName = isset($data['userName']) ? sanitizeInput($data['userName']) : null;
     $email = isset($data['email']) ? sanitizeInput($data['email']) : null;
     $phone = isset($data['phone']) ? sanitizeInput($data['phone']) : null; // Thêm field phone
+    $password = isset($data['password']) ? $data['password'] : null; // Thêm password
     $age = isset($data['age']) ? (int)$data['age'] : null;
     $gender = isset($data['gender']) ? sanitizeInput($data['gender']) : null;
     $blood = isset($data['blood']) ? sanitizeInput($data['blood']) : null;
@@ -46,11 +47,15 @@ try {
     $relative_phone = isset($data['relative_phone']) ? sanitizeInput($data['relative_phone']) : null;
     $home_address = isset($data['home_address']) ? sanitizeInput($data['home_address']) : null;
     
+    // Hash password trước khi lưu
+    $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+    
     // Chuẩn bị câu SQL INSERT
     $sql = "INSERT INTO user (
         userName, 
         email, 
         phone,
+        password,
         age, 
         gender, 
         blood, 
@@ -62,7 +67,7 @@ try {
         notifications,
         relative_phone,
         home_address
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     
     $stmt = $conn->prepare($sql);
     
@@ -76,6 +81,7 @@ try {
         $userName, 
         $email, 
         $phone,  // Thêm phone vào parameters
+        $hashedPassword, // Thêm hashed password
         $age, 
         $gender, 
         $blood, 
@@ -93,7 +99,7 @@ try {
     if ($result) {
         $userId = $conn->lastInsertId();
         
-        // Tạo response data
+        // Tạo response data (không trả về password)
         $responseData = [
             'user' => [
                 'userId' => (int)$userId,
