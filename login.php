@@ -69,28 +69,29 @@ try {
             // Kiểm tra password
             if (password_verify($password, $user['password'])) {
                 // Password đúng - trả về thông tin user
-                $responseData = [
-                        'user' => [
-                            'userId' => (int)$user['userId'],
-                            'userName' => $user['userName'],
-                            'email' => $user['email'],
-                            'phone' => $user['phone'], // Thêm field phone
-                            'age' => $user['age'],
-                            'gender' => $user['gender'],
-                            'blood' => $user['blood'],
-                            'chronic_diseases' => $user['chronic_diseases'],
-                            'allergies' => $user['allergies'],
-                            'premium_status' => (bool)$user['premium_status'],
-                        'premium_start_date' => $user['premium_start_date'],
-                        'premium_end_date' => $user['premium_end_date'],
-                            'notifications' => (bool)$user['notifications'],
-                            'relative_phone' => $user['relative_phone'],
-                            'home_address' => $user['home_address'],
-                            'created_at' => $user['created_at'],
-                            'updated_at' => $user['updated_at']
-                        ],
-                        'token' => 'jwt_token_' . $user['userId'] . '_' . time()
-                ];
+                            $responseData = [
+                    'user' => [
+                        'userId' => (int)$user['userId'],
+                        'userName' => $user['userName'],
+                        'email' => $user['email'],
+                        'phone' => $user['phone'], // Thêm field phone
+                        'role' => $user['role'], // Thêm field role
+                        'age' => $user['age'],
+                        'gender' => $user['gender'],
+                        'blood' => $user['blood'],
+                        'chronic_diseases' => $user['chronic_diseases'],
+                        'allergies' => $user['allergies'],
+                        'premium_status' => (bool)$user['premium_status'],
+                    'premium_start_date' => $user['premium_start_date'],
+                    'premium_end_date' => $user['premium_end_date'],
+                        'notifications' => (bool)$user['notifications'],
+                        'relative_phone' => $user['relative_phone'],
+                        'home_address' => $user['home_address'],
+                        'created_at' => $user['created_at'],
+                        'updated_at' => $user['updated_at']
+                    ],
+                    'token' => 'jwt_token_' . $user['userId'] . '_' . time()
+            ];
                 
                 // Debug: log response data
                 error_log('Login response: ' . json_encode($responseData));

@@ -33,6 +33,7 @@ try {
     $email = isset($data['email']) ? sanitizeInput($data['email']) : null;
     $phone = isset($data['phone']) ? sanitizeInput($data['phone']) : null; // Thêm field phone
     $password = isset($data['password']) ? $data['password'] : null; // Thêm password
+    $role = isset($data['role']) ? sanitizeInput($data['role']) : 'user'; // Thêm role
     $age = isset($data['age']) ? (int)$data['age'] : null;
     $gender = isset($data['gender']) ? sanitizeInput($data['gender']) : null;
     $blood = isset($data['blood']) ? sanitizeInput($data['blood']) : null;
@@ -56,6 +57,7 @@ try {
         email, 
         phone,
         password,
+        role,
         age, 
         gender, 
         blood, 
@@ -67,7 +69,7 @@ try {
         notifications,
         relative_phone,
         home_address
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     
     $stmt = $conn->prepare($sql);
     
@@ -82,6 +84,7 @@ try {
         $email, 
         $phone,  // Thêm phone vào parameters
         $hashedPassword, // Thêm hashed password
+        $role, // Thêm role
         $age, 
         $gender, 
         $blood, 
@@ -106,6 +109,7 @@ try {
                 'userName' => $userName,
                 'email' => $email,
                 'phone' => $phone,  // Thêm phone vào response
+                'role' => $role, // Thêm role vào response
                 'age' => $age,
                 'gender' => $gender,
                 'blood' => $blood,
