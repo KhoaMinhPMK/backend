@@ -34,6 +34,7 @@ try {
     $phone = isset($data['phone']) ? sanitizeInput($data['phone']) : null; // Thêm field phone
     $password = isset($data['password']) ? $data['password'] : null; // Thêm password
     $role = isset($data['role']) ? sanitizeInput($data['role']) : 'user'; // Thêm role
+    $privateKey = isset($data['uniqueCode']) ? sanitizeInput($data['uniqueCode']) : null; // Thêm private key
     $age = isset($data['age']) ? (int)$data['age'] : null;
     $gender = isset($data['gender']) ? sanitizeInput($data['gender']) : null;
     $blood = isset($data['blood']) ? sanitizeInput($data['blood']) : null;
@@ -58,6 +59,7 @@ try {
         phone,
         password,
         role,
+        private_key,
         age, 
         gender, 
         blood, 
@@ -69,7 +71,7 @@ try {
         notifications,
         relative_phone,
         home_address
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     
     $stmt = $conn->prepare($sql);
     
@@ -85,6 +87,7 @@ try {
         $phone,  // Thêm phone vào parameters
         $hashedPassword, // Thêm hashed password
         $role, // Thêm role
+        $privateKey, // Thêm private key
         $age, 
         $gender, 
         $blood, 
@@ -110,6 +113,7 @@ try {
                 'email' => $email,
                 'phone' => $phone,  // Thêm phone vào response
                 'role' => $role, // Thêm role vào response
+                'privateKey' => $privateKey, // Thêm private key vào response
                 'age' => $age,
                 'gender' => $gender,
                 'blood' => $blood,
