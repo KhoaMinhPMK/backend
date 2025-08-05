@@ -22,6 +22,13 @@ try {
     // Debug: log input data
     error_log('Register input: ' . $input);
     
+    // Debug: log all received fields
+    error_log('Received data fields: ' . json_encode(array_keys($data)));
+    
+    // Debug: log privateKey specifically
+    error_log('privateKey in data: ' . (isset($data['privateKey']) ? 'YES' : 'NO'));
+    error_log('privateKey raw value: ' . (isset($data['privateKey']) ? $data['privateKey'] : 'NOT_SET'));
+    
     // Kiểm tra JSON có hợp lệ không
     if (json_last_error() !== JSON_ERROR_NONE) {
         sendErrorResponse('Invalid JSON format');
@@ -34,7 +41,12 @@ try {
     $phone = isset($data['phone']) ? sanitizeInput($data['phone']) : null; // Thêm field phone
     $password = isset($data['password']) ? $data['password'] : null; // Thêm password
     $role = isset($data['role']) ? sanitizeInput($data['role']) : 'user'; // Thêm role
-    $privateKey = isset($data['uniqueCode']) ? sanitizeInput($data['uniqueCode']) : null; // Thêm private key
+    $privateKey = isset($data['privateKey']) ? sanitizeInput($data['privateKey']) : null; // Thêm private key
+    
+    // Debug: log private key value before and after sanitization
+    error_log('Private key before sanitization: ' . (isset($data['privateKey']) ? $data['privateKey'] : 'NULL'));
+    error_log('Private key after sanitization: ' . ($privateKey ?: 'NULL'));
+    error_log('Private key length: ' . ($privateKey ? strlen($privateKey) : 0));
     $age = isset($data['age']) ? (int)$data['age'] : null;
     $gender = isset($data['gender']) ? sanitizeInput($data['gender']) : null;
     $blood = isset($data['blood']) ? sanitizeInput($data['blood']) : null;
@@ -52,94 +64,55 @@ try {
     // Hash password trước khi lưu
     $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
     
-    // Chuẩn bị câu SQL INSERT
-    $sql = "INSERT INTO user (
-        userName, 
-        email, 
-        phone,
-        password,
-        role,
-        private_key,
-        age, 
-        gender, 
-        blood, 
-        chronic_diseases, 
-        allergies, 
-        premium_status,
-        premium_start_date,
-        premium_end_date,
-        notifications,
-        relative_phone,
-        home_address
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    // DEBUG: Let's try a minimal insert first to isolate the issue
+    error_log('=== ATTEMPTING MINIMAL INSERT ===');
+    error_log('privateKey value to insert: ' . ($privateKey ?: 'NULL'));
+    
+    // Minimal SQL for testing
+    $sql = "INSERT INTO user (userName, email, phone, password, role, private_key) VALUES (?, ?, ?, ?, ?, ?)";
     
     $stmt = $conn->prepare($sql);
     
     if (!$stmt) {
+        error_log('Prepare error: ' . json_encode($conn->errorInfo()));
         sendErrorResponse('Database prepare error');
         exit;
     }
     
-    // Execute với parameters
-    $result = $stmt->execute([
-        $userName, 
-        $email, 
-        $phone,  // Thêm phone vào parameters
-        $hashedPassword, // Thêm hashed password
-        $role, // Thêm role
-        $privateKey, // Thêm private key
-        $age, 
-        $gender, 
-        $blood, 
-        $chronic_diseases, 
-        $allergies, 
-        $premium_status,
-        $premium_start_date,
-        $premium_end_date,
-        $notifications,
-        $relative_phone,
-        $home_address
-    ]);
+    // Minimal parameters
+    $result = $stmt->execute([$userName, $email, $phone, $hashedPassword, $role, $privateKey]);
     
-    // Thực thi query
     if ($result) {
         $userId = $conn->lastInsertId();
+        error_log('Minimal insert successful, userId: ' . $userId);
         
-        // Tạo response data (không trả về password)
+        // Verify what was actually saved
+        $verifySql = "SELECT userId, userName, email, phone, role, private_key FROM user WHERE userId = ?";
+        $verifyStmt = $conn->prepare($verifySql);
+        $verifyStmt->execute([$userId]);
+        $savedData = $verifyStmt->fetch(PDO::FETCH_ASSOC);
+        
+        error_log('Minimal insert verification: ' . json_encode($savedData));
+        
+        // Return the saved data
         $responseData = [
             'user' => [
                 'userId' => (int)$userId,
-                'userName' => $userName,
-                'email' => $email,
-                'phone' => $phone,  // Thêm phone vào response
-                'role' => $role, // Thêm role vào response
-                'privateKey' => $privateKey, // Thêm private key vào response
-                'age' => $age,
-                'gender' => $gender,
-                'blood' => $blood,
-                'chronic_diseases' => $chronic_diseases,
-                'allergies' => $allergies,
-                'premium_status' => $premium_status,
-                'premium_start_date' => $premium_start_date,
-                'premium_end_date' => $premium_end_date,
-                'notifications' => $notifications,
-                'relative_phone' => $relative_phone,
-                'home_address' => $home_address,
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s')
+                'userName' => $savedData['userName'],
+                'email' => $savedData['email'],
+                'phone' => $savedData['phone'],
+                'role' => $savedData['role'],
+                'privateKey' => $savedData['private_key']
             ]
         ];
         
-        // Debug: log response data
-        error_log('Register response: ' . json_encode($responseData));
-        
+        error_log('Minimal response: ' . json_encode($responseData));
         sendSuccessResponse($responseData, 'User registered successfully');
         
     } else {
+        error_log('Minimal insert failed: ' . json_encode($stmt->errorInfo()));
         sendErrorResponse('Failed to register user');
-    }
-    
-} catch (Exception $e) {
+    }} catch (Exception $e) {
     sendErrorResponse('Server error: ' . $e->getMessage());
 }
 ?>
