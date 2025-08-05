@@ -65,6 +65,7 @@ try {
                     'userName' => $user['userName'],
                     'email' => $user['email'],
                     'phone' => $user['phone'], // Thêm field phone
+                    'role' => $user['role'], // Thêm field role
                     'age' => $user['age'],
                     'gender' => $user['gender'],
                     'blood' => $user['blood'],
