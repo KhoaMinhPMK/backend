@@ -48,6 +48,61 @@ try {
     $relative_phone = isset($data['relative_phone']) ? sanitizeInput($data['relative_phone']) : null;
     $home_address = isset($data['home_address']) ? sanitizeInput($data['home_address']) : null;
     
+    // Validation
+    if (!$userName) {
+        sendErrorResponse('Tên người dùng là bắt buộc', 'Bad request', 400);
+        exit;
+    }
+    
+    if (!$email) {
+        sendErrorResponse('Email là bắt buộc', 'Bad request', 400);
+        exit;
+    }
+    
+    if (!$phone) {
+        sendErrorResponse('Số điện thoại là bắt buộc', 'Bad request', 400);
+        exit;
+    }
+    
+    if (!$password) {
+        sendErrorResponse('Mật khẩu là bắt buộc', 'Bad request', 400);
+        exit;
+    }
+    
+    // Validate email format
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        sendErrorResponse('Email không hợp lệ', 'Bad request', 400);
+        exit;
+    }
+    
+    // Validate phone format (basic validation)
+    if (strlen($phone) < 10) {
+        sendErrorResponse('Số điện thoại phải có ít nhất 10 chữ số', 'Bad request', 400);
+        exit;
+    }
+    
+    // Kiểm tra email đã tồn tại chưa
+    $checkEmailSql = "SELECT userId FROM user WHERE email = ? LIMIT 1";
+    $checkEmailStmt = $conn->prepare($checkEmailSql);
+    $checkEmailStmt->execute([$email]);
+    $existingEmail = $checkEmailStmt->fetch(PDO::FETCH_ASSOC);
+    
+    if ($existingEmail) {
+        sendErrorResponse('Email đã được sử dụng. Vui lòng chọn email khác.', 'Email already exists', 409);
+        exit;
+    }
+    
+    // Kiểm tra số điện thoại đã tồn tại chưa
+    $checkPhoneSql = "SELECT userId FROM user WHERE phone = ? LIMIT 1";
+    $checkPhoneStmt = $conn->prepare($checkPhoneSql);
+    $checkPhoneStmt->execute([$phone]);
+    $existingPhone = $checkPhoneStmt->fetch(PDO::FETCH_ASSOC);
+    
+    if ($existingPhone) {
+        sendErrorResponse('Số điện thoại đã được sử dụng. Vui lòng chọn số khác.', 'Phone already exists', 409);
+        exit;
+    }
+    
     // Hash password trước khi lưu
     $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
     
