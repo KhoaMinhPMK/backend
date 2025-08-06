@@ -45,6 +45,7 @@ try {
     $email = isset($data['email']) ? trim($data['email']) : null;
     $password = isset($data['password']) ? $data['password'] : null;
     $privateKey = isset($data['privateKey']) ? trim($data['privateKey']) : null;
+    $role = isset($data['role']) ? trim($data['role']) : 'user'; // Default to 'user' if not provided
     
     // Basic validation
     if (empty($fullName) || empty($phone) || empty($email) || empty($password) || empty($privateKey)) {
@@ -56,7 +57,7 @@ try {
     $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
     
     // Prepare SQL for inserting into viegrand.user table
-    $sql = "INSERT INTO user (userName, phone, email, password, private_key) VALUES (?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO user (userName, phone, email, password, private_key, role) VALUES (?, ?, ?, ?, ?, ?)";
     
     $stmt = $conn->prepare($sql);
     
@@ -66,13 +67,13 @@ try {
     }
     
     // Execute the insert
-    $result = $stmt->execute([$fullName, $phone, $email, $hashedPassword, $privateKey]);
+    $result = $stmt->execute([$fullName, $phone, $email, $hashedPassword, $privateKey, $role]);
     
     if ($result) {
         $userId = $conn->lastInsertId();
         
         // Verify the insert by querying back
-        $verifySql = "SELECT userId, userName, phone, email, private_key FROM user WHERE userId = ?";
+        $verifySql = "SELECT userId, userName, phone, email, private_key, role FROM user WHERE userId = ?";
         $verifyStmt = $conn->prepare($verifySql);
         $verifyStmt->execute([$userId]);
         $savedData = $verifyStmt->fetch(PDO::FETCH_ASSOC);
@@ -87,7 +88,8 @@ try {
                     'userName' => $savedData['userName'],
                     'phone' => $savedData['phone'],
                     'email' => $savedData['email'],
-                    'privateKey' => $savedData['private_key']
+                    'privateKey' => $savedData['private_key'],
+                    'role' => $savedData['role']
                 ]
             ]
         ]);
