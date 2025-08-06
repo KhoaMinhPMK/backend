@@ -72,8 +72,8 @@ try {
         exit;
     }
     
-    // Use first 8 characters of private key for young_person_key
-    $youngPersonKey = substr($user['private_key'], 0, 8);
+    // Use the whole private key for young_person_key
+    $youngPersonKey = $user['private_key'];
     
     // Calculate start and end dates
     $startDate = new DateTime();

@@ -49,8 +49,8 @@ try {
         exit;
     }
     
-    // Extract the first 8 characters of private_key as young_person_key
-    $youngPersonKey = substr($user['private_key'], 0, 8);
+    // Use the whole private_key as young_person_key
+    $youngPersonKey = $user['private_key'];
     
     // Get the current active premium subscription
     $subscriptionSql = "SELECT 

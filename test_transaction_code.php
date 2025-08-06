@@ -84,7 +84,7 @@ try {
             exit;
         }
         
-        $youngPersonKey = substr($user['private_key'], 0, 8);
+        $youngPersonKey = $user['private_key'];
         
         // Calculate dates
         $startDate = new DateTime();

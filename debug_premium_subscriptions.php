@@ -30,7 +30,7 @@ try {
                 DATEDIFF(p.end_date, NOW()) as days_remaining,
                 IF(p.end_date > NOW(), 'Active', 'Expired') as status
             FROM premium_subscriptions_json p
-            LEFT JOIN user u ON SUBSTRING(u.private_key, 1, 8) = p.young_person_key
+            LEFT JOIN user u ON u.private_key = p.young_person_key
             ORDER BY p.start_date DESC";
     
     $stmt = $conn->prepare($sql);
