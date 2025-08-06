@@ -94,6 +94,7 @@ try {
                     'blood_pressure_diastolic' => $user['blood_pressure_diastolic'] ? (int)$user['blood_pressure_diastolic'] : null,
                     'heart_rate' => $user['heart_rate'] ? (int)$user['heart_rate'] : null,
                     'last_health_check' => $user['last_health_check'],
+                    'private_key' => $user['private_key'], // Add private_key field
                     'created_at' => $user['created_at'],
                     'updated_at' => $user['updated_at']
                 ]
