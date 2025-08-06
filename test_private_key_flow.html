@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Private Key Flow</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        button { padding: 10px 20px; margin: 5px; background: #007AFF; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #005BBB; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 5px; overflow-x: auto; }
+        input, textarea { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ccc; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test Private Key Flow</h1>
+        
+        <div class="section">
+            <h3>1. Debug Private Keys in Database</h3>
+            <button onclick="debugPrivateKeys()">Check Private Keys in DB</button>
+            <pre id="debugResult"></pre>
+        </div>
+        
+        <div class="section">
+            <h3>2. Test Get User Data</h3>
+            <input type="email" id="testEmail" placeholder="Enter email to test" value="test@example.com">
+            <button onclick="testGetUserData()">Get User Data</button>
+            <pre id="getUserResult"></pre>
+        </div>
+        
+        <div class="section">
+            <h3>3. Test Registration</h3>
+            <input type="text" id="regFullName" placeholder="Full Name" value="Test User">
+            <input type="email" id="regEmail" placeholder="Email" value="testuser@example.com">
+            <input type="tel" id="regPhone" placeholder="Phone" value="0123456789">
+            <input type="password" id="regPassword" placeholder="Password" value="123456">
+            <input type="text" id="regPrivateKey" placeholder="Private Key" value="test-private-key-123">
+            <select id="regRole">
+                <option value="elderly">Elderly</option>
+                <option value="relative">Relative</option>
+            </select>
+            <button onclick="testRegister()">Register User</button>
+            <pre id="registerResult"></pre>
+        </div>
+    </div>
+
+    <script>
+        const baseUrl = window.location.origin + '/backend';
+        
+        async function debugPrivateKeys() {
+            try {
+                const response = await fetch(`${baseUrl}/debug_private_key.php`);
+                const data = await response.json();
+                document.getElementById('debugResult').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('debugResult').textContent = 'Error: ' + error.message;
+            }
+        }
+        
+        async function testGetUserData() {
+            const email = document.getElementById('testEmail').value;
+            try {
+                const response = await fetch(`${baseUrl}/get_user_data.php`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                const data = await response.json();
+                document.getElementById('getUserResult').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('getUserResult').textContent = 'Error: ' + error.message;
+            }
+        }
+        
+        async function testRegister() {
+            const userData = {
+                fullName: document.getElementById('regFullName').value,
+                email: document.getElementById('regEmail').value,
+                phone: document.getElementById('regPhone').value,
+                password: document.getElementById('regPassword').value,
+                privateKey: document.getElementById('regPrivateKey').value,
+                role: document.getElementById('regRole').value
+            };
+            
+            try {
+                const response = await fetch(`${baseUrl}/register_private_key.php`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(userData)
+                });
+                const data = await response.json();
+                document.getElementById('registerResult').textContent = JSON.stringify(data, null, 2);
+                
+                // If registration successful, auto-test get user data
+                if (data.success) {
+                    document.getElementById('testEmail').value = userData.email;
+                    setTimeout(() => testGetUserData(), 1000);
+                }
+            } catch (error) {
+                document.getElementById('registerResult').textContent = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html> 
