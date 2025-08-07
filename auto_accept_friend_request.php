@@ -47,12 +47,17 @@ try {
     // Get friend request details
     $getFriendRequestSql = "SELECT * FROM friend_requests WHERE id = ? AND status IN ('pending', 'auto_pending')";
     $stmt = $conn->prepare($getFriendRequestSql);
+    
+    if (!$stmt) {
+        throw new Exception("Failed to prepare friend request query: " . print_r($conn->errorInfo(), true));
+    }
+    
     $stmt->execute([$requestId]);
     $friendRequest = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if (!$friendRequest) {
         $conn->rollback();
-        error_log("❌ Friend request not found or not pending");
+        error_log("❌ Friend request not found or not pending for ID: $requestId");
         sendErrorResponse('Friend request not found or already processed', 'Not found', 404);
         exit;
     }
@@ -84,7 +89,14 @@ try {
     // 1. Update friend request status to 'accepted'
     $updateRequestSql = "UPDATE friend_requests SET status = 'accepted' WHERE id = ?";
     $stmt = $conn->prepare($updateRequestSql);
-    $stmt->execute([$requestId]);
+    
+    if (!$stmt) {
+        throw new Exception("Failed to prepare update request query: " . print_r($conn->errorInfo(), true));
+    }
+    
+    if (!$stmt->execute([$requestId])) {
+        throw new Exception("Failed to execute update request query: " . print_r($stmt->errorInfo(), true));
+    }
     
     error_log("✅ Friend request marked as accepted");
     
@@ -92,20 +104,45 @@ try {
     $createFriendshipSql = "INSERT IGNORE INTO friend_status (user_phone, friend_phone, status, requester_phone) VALUES (?, ?, 'accepted', ?)";
     $stmt = $conn->prepare($createFriendshipSql);
     
+    if (!$stmt) {
+        throw new Exception("Failed to prepare friendship query: " . print_r($conn->errorInfo(), true));
+    }
+    
     // Direction 1: to_phone -> from_phone
-    $stmt->execute([$toPhone, $fromPhone, $fromPhone]);
+    if (!$stmt->execute([$toPhone, $fromPhone, $fromPhone])) {
+        throw new Exception("Failed to execute friendship query 1: " . print_r($stmt->errorInfo(), true));
+    }
     // Direction 2: from_phone -> to_phone  
-    $stmt->execute([$fromPhone, $toPhone, $fromPhone]);
+    if (!$stmt->execute([$fromPhone, $toPhone, $fromPhone])) {
+        throw new Exception("Failed to execute friendship query 2: " . print_r($stmt->errorInfo(), true));
+    }
     
     error_log("✅ Friendship records created in both directions");
     
     // 3. Create conversation
     $createConversationSql = "INSERT IGNORE INTO conversations (user1_phone, user2_phone) VALUES (?, ?)";
     $stmt = $conn->prepare($createConversationSql);
-    $stmt->execute([$fromPhone, $toPhone]);
     
+    if (!$stmt) {
+        throw new Exception("Failed to prepare conversation query: " . print_r($conn->errorInfo(), true));
+    }
+    
+    if (!$stmt->execute([$fromPhone, $toPhone])) {
+        throw new Exception("Failed to execute conversation query: " . print_r($stmt->errorInfo(), true));
+    }
+    
+    // Get conversation ID - if INSERT IGNORE didn't insert, get existing conversation
     $conversationId = $conn->lastInsertId();
-    error_log("✅ Conversation created with ID: $conversationId");
+    if (!$conversationId) {
+        // Get existing conversation ID
+        $getConversationSql = "SELECT id FROM conversations WHERE (user1_phone = ? AND user2_phone = ?) OR (user1_phone = ? AND user2_phone = ?)";
+        $stmt = $conn->prepare($getConversationSql);
+        $stmt->execute([$fromPhone, $toPhone, $toPhone, $fromPhone]);
+        $existingConversation = $stmt->fetch(PDO::FETCH_ASSOC);
+        $conversationId = $existingConversation ? $existingConversation['id'] : 0;
+    }
+    
+    error_log("✅ Conversation ID: $conversationId");
     
     // 4. Create notification for both users
     $notification_data = [
@@ -122,25 +159,78 @@ try {
         ]
     ];
     
-    $insertNotifSql = "INSERT INTO notifications (user_phone, type, title, body) VALUES (?, ?, ?, ?)";
-    $stmt = $conn->prepare($insertNotifSql);
-    
-    // Notification for both users
-    $stmt->execute([
-        $fromPhone,
-        $notification_data['type'],
-        $notification_data['title'],
-        $notification_data['body']
-    ]);
-    
-    $stmt->execute([
-        $toPhone,
-        $notification_data['type'],
-        $notification_data['title'],
-        $notification_data['body']
-    ]);
-    
-    error_log("✅ Notifications created for both users");
+    // Only create notifications if conversation was created or found
+    if ($conversationId) {
+        $insertNotifSql = "INSERT INTO notifications (user_phone, type, title, body) VALUES (?, ?, ?, ?)";
+        $stmt = $conn->prepare($insertNotifSql);
+        
+        if (!$stmt) {
+            throw new Exception("Failed to prepare notification query: " . print_r($conn->errorInfo(), true));
+        }
+        
+        // Notification for both users
+        if (!$stmt->execute([
+            $fromPhone,
+            $notification_data['type'],
+            $notification_data['title'],
+            $notification_data['body']
+        ])) {
+            throw new Exception("Failed to execute notification query 1: " . print_r($stmt->errorInfo(), true));
+        }
+        
+        if (!$stmt->execute([
+            $toPhone,
+            $notification_data['type'],
+            $notification_data['title'],
+            $notification_data['body']
+        ])) {
+            throw new Exception("Failed to execute notification query 2: " . print_r($stmt->errorInfo(), true));
+        }
+        
+        error_log("✅ Notifications created for both users");
+        
+        // 5. Send real-time notifications to socket server
+        $fromNotificationSent = false;
+        $toNotificationSent = false;
+        
+        try {
+            $notificationPayload = [
+                'type' => 'auto_friend_request_accepted',
+                'title' => 'Tự động kết bạn thành công',
+                'body' => 'Bạn và ' . $fromUser['userName'] . ' đã được kết bạn tự động qua hệ thống Premium!',
+                'data' => [
+                    'accepter_phone' => $toPhone,
+                    'accepter_name' => $toUser['userName'],
+                    'requester_phone' => $fromPhone,
+                    'requester_name' => $fromUser['userName'],
+                    'original_request_id' => $requestId,
+                    'conversation_id' => $conversationId
+                ]
+            ];
+            
+            // Send notification to fromPhone (requester)
+            $fromNotificationSent = send_socket_notification($fromPhone, $notificationPayload);
+            if ($fromNotificationSent) {
+                error_log("✅ Real-time notification sent to $fromPhone");
+            } else {
+                error_log("⚠️ Failed to send real-time notification to $fromPhone");
+            }
+            
+            // Send notification to toPhone (accepter)
+            $toNotificationSent = send_socket_notification($toPhone, $notificationPayload);
+            if ($toNotificationSent) {
+                error_log("✅ Real-time notification sent to $toPhone");
+            } else {
+                error_log("⚠️ Failed to send real-time notification to $toPhone");
+            }
+            
+        } catch (Exception $e) {
+            error_log("⚠️ Error sending real-time notifications: " . $e->getMessage());
+            // Don't throw exception here, just log the error
+        }
+    } else {
+        error_log("⚠️ No conversation ID available, skipping notifications");
+    }
     
     // Commit transaction
     $conn->commit();
@@ -148,8 +238,9 @@ try {
     
     $responseData = [
         'friendship_created' => true,
-        'conversation_created' => true,
-        'notifications_sent' => true,
+        'conversation_created' => $conversationId > 0,
+        'notifications_sent' => $conversationId > 0,
+        'real_time_notifications_sent' => isset($fromNotificationSent) && isset($toNotificationSent) ? ($fromNotificationSent && $toNotificationSent) : false,
         'accepter_name' => $toUser['userName'],
         'requester_name' => $fromUser['userName'],
         'conversation_id' => $conversationId
@@ -163,6 +254,7 @@ try {
         $conn->rollback();
     }
     error_log("❌ Exception in auto_accept_friend_request.php: " . $e->getMessage());
-    sendErrorResponse('Internal server error', 'Internal server error', 500);
+    error_log("❌ Stack trace: " . $e->getTraceAsString());
+    sendErrorResponse('Internal server error: ' . $e->getMessage(), 'Internal server error', 500);
 }
 ?>

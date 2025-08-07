@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Test Users</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .button {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        .button:hover {
+            background: #0056CC;
+        }
+        .button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .success {
+            background: #D4EDDA;
+            color: #155724;
+            border: 1px solid #C3E6CB;
+        }
+        .error {
+            background: #F8D7DA;
+            color: #721C24;
+            border: 1px solid #F5C6CB;
+        }
+        .info {
+            background: #D1ECF1;
+            color: #0C5460;
+            border: 1px solid #BEE5EB;
+        }
+    </style>
+</head>
+<body>
+    <h1>Create Test Users</h1>
+    
+    <div class="container">
+        <h2>Test Users Information</h2>
+        <p><strong>Elderly Users (10 users):</strong></p>
+        <ul>
+            <li>Nguyễn Văn An (5 tuổi) - Phone: 1111111111 - Private Key: abc123def</li>
+            <li>Trần Thị Bình (6 tuổi) - Phone: 1111111112 - Private Key: def456ghi</li>
+            <li>Lê Văn Cường (7 tuổi) - Phone: 1111111113 - Private Key: ghi789jkl</li>
+            <li>Phạm Thị Dung (8 tuổi) - Phone: 1111111114 - Private Key: jkl012mno</li>
+            <li>Hoàng Văn Em (9 tuổi) - Phone: 1111111115 - Private Key: mno345pqr</li>
+            <li>Vũ Thị Phương (10 tuổi) - Phone: 1111111116 - Private Key: pqr678stu</li>
+            <li>Đặng Văn Giang (11 tuổi) - Phone: 1111111117 - Private Key: stu901vwx</li>
+            <li>Ngô Thị Hoa (12 tuổi) - Phone: 1111111118 - Private Key: vwx234yza</li>
+            <li>Lý Văn Ích (13 tuổi) - Phone: 1111111119 - Private Key: yza567bcd</li>
+            <li>Hồ Thị Kim (14 tuổi) - Phone: 1111111120 - Private Key: bcd890efg</li>
+        </ul>
+        
+        <p><strong>Relative Users (5 users):</strong></p>
+        <ul>
+            <li>Nguyễn Văn Relative1 (25 tuổi) - Phone: 2222222221 - Private Key: rel123abc</li>
+            <li>Trần Thị Relative2 (30 tuổi) - Phone: 2222222222 - Private Key: rel456def</li>
+            <li>Lê Văn Relative3 (35 tuổi) - Phone: 2222222223 - Private Key: rel789ghi</li>
+            <li>Phạm Thị Relative4 (28 tuổi) - Phone: 2222222224 - Private Key: rel012jkl</li>
+            <li>Hoàng Văn Relative5 (32 tuổi) - Phone: 2222222225 - Private Key: rel345mno</li>
+        </ul>
+        
+        <p><strong>Password for all users:</strong> password123</p>
+        <p><strong>Premium subscriptions:</strong> All relative users will have active premium subscriptions</p>
+    </div>
+    
+    <div class="container">
+        <h2>Create Test Users</h2>
+        <p>Click the button below to create 10 elderly users and 5 relative users with premium subscriptions.</p>
+        <button class="button" onclick="createTestUsers()" id="createButton">Create Test Users</button>
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        async function createTestUsers() {
+            const button = document.getElementById('createButton');
+            const result = document.getElementById('result');
+            
+            button.disabled = true;
+            button.textContent = 'Creating users...';
+            result.className = 'result info';
+            result.textContent = 'Creating test users...';
+            
+            try {
+                const response = await fetch('create_test_users.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    result.className = 'result success';
+                    result.textContent = `✅ Test users created successfully!\n\n` +
+                        `📊 Summary:\n` +
+                        `- Elderly users created: ${data.data.elderly_users_created}\n` +
+                        `- Relative users created: ${data.data.relative_users_created}\n` +
+                        `- Premium subscriptions created: ${data.data.premium_subscriptions_created}\n` +
+                        `- Total users created: ${data.data.total_users_created}\n\n` +
+                        `🎉 All users are ready for testing!`;
+                } else {
+                    result.className = 'result error';
+                    result.textContent = `❌ Error: ${data.message || 'Unknown error'}`;
+                }
+            } catch (error) {
+                result.className = 'result error';
+                result.textContent = `❌ Network error: ${error.message}`;
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Create Test Users';
+            }
+        }
+    </script>
+</body>
+</html>
