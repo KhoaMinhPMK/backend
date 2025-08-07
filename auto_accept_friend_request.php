@@ -123,18 +123,29 @@ try {
     }
     
     // 2. Create friendship records
-    $createFriendshipSql = "INSERT INTO friend_status (user_phone, friend_phone, status) VALUES (?, ?, 'accepted'), (?, ?, 'accepted')";
-    $stmt = $conn->prepare($createFriendshipSql);
+    // Check if friendship already exists
+    $checkFriendshipSql = "SELECT * FROM friend_status WHERE (user_phone = ? AND friend_phone = ?) OR (user_phone = ? AND friend_phone = ?)";
+    $stmt = $conn->prepare($checkFriendshipSql);
+    $stmt->execute([$fromPhone, $toPhone, $toPhone, $fromPhone]);
+    $existingFriendship = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    if (!$stmt) {
-        throw new Exception("Failed to prepare friendship query: " . print_r($conn->errorInfo(), true));
+    if ($existingFriendship) {
+        error_log("✅ Friendship already exists, skipping creation");
+    } else {
+        // Create friendship records using INSERT IGNORE to avoid duplicates
+        $createFriendshipSql = "INSERT IGNORE INTO friend_status (user_phone, friend_phone, status) VALUES (?, ?, 'accepted'), (?, ?, 'accepted')";
+        $stmt = $conn->prepare($createFriendshipSql);
+        
+        if (!$stmt) {
+            throw new Exception("Failed to prepare friendship query: " . print_r($conn->errorInfo(), true));
+        }
+        
+        if (!$stmt->execute([$fromPhone, $toPhone, $toPhone, $fromPhone])) {
+            throw new Exception("Failed to execute friendship query: " . print_r($stmt->errorInfo(), true));
+        }
+        
+        error_log("✅ Friendship records created");
     }
-    
-    if (!$stmt->execute([$fromPhone, $toPhone, $toPhone, $fromPhone])) {
-        throw new Exception("Failed to execute friendship query: " . print_r($stmt->errorInfo(), true));
-    }
-    
-    error_log("✅ Friendship records created");
     
     // 3. Create conversation
     $conversationId = 'conv_' . md5($fromPhone . $toPhone . time());
@@ -244,13 +255,14 @@ try {
     error_log("✅ Transaction committed successfully");
     
     $responseData = [
-        'friendship_created' => true,
+        'friendship_created' => !$existingFriendship, // true if created, false if already existed
         'conversation_created' => !empty($conversationId),
         'notifications_sent' => !empty($conversationId),
         'real_time_notifications_sent' => $fromNotificationSent && $toNotificationSent,
         'accepter_name' => $toUser['userName'],
         'requester_name' => $fromUser['userName'],
-        'conversation_id' => $conversationId
+        'conversation_id' => $conversationId,
+        'friendship_already_existed' => $existingFriendship ? true : false
     ];
     
     error_log("✅ Auto accept friend request completed successfully");
