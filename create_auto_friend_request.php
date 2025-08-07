@@ -100,7 +100,7 @@ try {
         }
         
         // Create auto friend request - use 'pending' status instead of 'auto_pending'
-        $createRequestSql = "INSERT INTO friend_requests (from_phone, to_phone, message, status, created_at) VALUES (?, ?, ?, 'pending', NOW())";
+        $createRequestSql = "INSERT INTO friend_requests (from_phone, to_phone, message, status) VALUES (?, ?, ?, 'pending')";
         $stmt = $conn->prepare($createRequestSql);
         $autoMessage = "Tự động kết bạn từ hệ thống Premium";
         

@@ -82,14 +82,14 @@ try {
     error_log("✅ Users found - From: " . $fromUser['userName'] . ", To: " . $toUser['userName']);
     
     // 1. Update friend request status to 'accepted'
-    $updateRequestSql = "UPDATE friend_requests SET status = 'accepted', responded_at = NOW() WHERE id = ?";
+    $updateRequestSql = "UPDATE friend_requests SET status = 'accepted' WHERE id = ?";
     $stmt = $conn->prepare($updateRequestSql);
     $stmt->execute([$requestId]);
     
     error_log("✅ Friend request marked as accepted");
     
     // 2. Create friendship records in friend_status (both directions)
-    $createFriendshipSql = "INSERT IGNORE INTO friend_status (user_phone, friend_phone, status, requester_phone, responded_at) VALUES (?, ?, 'accepted', ?, NOW())";
+    $createFriendshipSql = "INSERT IGNORE INTO friend_status (user_phone, friend_phone, status, requester_phone) VALUES (?, ?, 'accepted', ?)";
     $stmt = $conn->prepare($createFriendshipSql);
     
     // Direction 1: to_phone -> from_phone
@@ -100,7 +100,7 @@ try {
     error_log("✅ Friendship records created in both directions");
     
     // 3. Create conversation
-    $createConversationSql = "INSERT IGNORE INTO conversations (user1_phone, user2_phone, created_at) VALUES (?, ?, NOW())";
+    $createConversationSql = "INSERT IGNORE INTO conversations (user1_phone, user2_phone) VALUES (?, ?)";
     $stmt = $conn->prepare($createConversationSql);
     $stmt->execute([$fromPhone, $toPhone]);
     
@@ -122,7 +122,7 @@ try {
         ]
     ];
     
-    $insertNotifSql = "INSERT INTO notifications (user_phone, type, title, body, data) VALUES (?, ?, ?, ?, ?)";
+    $insertNotifSql = "INSERT INTO notifications (user_phone, type, title, body) VALUES (?, ?, ?, ?)";
     $stmt = $conn->prepare($insertNotifSql);
     
     // Notification for both users
@@ -130,16 +130,14 @@ try {
         $fromPhone,
         $notification_data['type'],
         $notification_data['title'],
-        $notification_data['body'],
-        json_encode($notification_data['details'])
+        $notification_data['body']
     ]);
     
     $stmt->execute([
         $toPhone,
         $notification_data['type'],
         $notification_data['title'],
-        $notification_data['body'],
-        json_encode($notification_data['details'])
+        $notification_data['body']
     ]);
     
     error_log("✅ Notifications created for both users");
