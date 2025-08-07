@@ -67,9 +67,23 @@ try {
     $fromPhone = $friendRequest['from_phone'];
     $toPhone = $friendRequest['to_phone'];
     
+    error_log("✅ Phone numbers - From: $fromPhone, To: $toPhone");
+    
+    // Validate that users are not trying to friend themselves
+    if ($fromPhone === $toPhone) {
+        $conn->rollback();
+        error_log("❌ Self-friending detected: $fromPhone");
+        sendErrorResponse('Cannot friend yourself', 'Bad request', 400);
+        exit;
+    }
+    
     // Get user names for notifications
     $getUserSql = "SELECT userName FROM user WHERE phone = ?";
     $stmt = $conn->prepare($getUserSql);
+    
+    if (!$stmt) {
+        throw new Exception("Failed to prepare user query: " . print_r($conn->errorInfo(), true));
+    }
     
     $stmt->execute([$fromPhone]);
     $fromUser = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -79,7 +93,7 @@ try {
     
     if (!$fromUser || !$toUser) {
         $conn->rollback();
-        error_log("❌ Could not find user data");
+        error_log("❌ Could not find user data - fromUser: " . ($fromUser ? 'found' : 'not found') . ", toUser: " . ($toUser ? 'found' : 'not found'));
         sendErrorResponse('User data not found', 'Internal server error', 500);
         exit;
     }
@@ -120,71 +134,50 @@ try {
     error_log("✅ Friendship records created in both directions");
     
     // 3. Create conversation
-    $createConversationSql = "INSERT IGNORE INTO conversations (user1_phone, user2_phone) VALUES (?, ?)";
+    $createConversationSql = "INSERT IGNORE INTO conversations (id, participant1_phone, participant2_phone) VALUES (?, ?, ?)";
     $stmt = $conn->prepare($createConversationSql);
     
     if (!$stmt) {
         throw new Exception("Failed to prepare conversation query: " . print_r($conn->errorInfo(), true));
     }
     
-    if (!$stmt->execute([$fromPhone, $toPhone])) {
+    // Generate unique conversation ID
+    $conversationId = 'conv_' . md5($fromPhone . $toPhone . time());
+    
+    if (!$stmt->execute([$conversationId, $fromPhone, $toPhone])) {
         throw new Exception("Failed to execute conversation query: " . print_r($stmt->errorInfo(), true));
     }
     
-    // Get conversation ID - if INSERT IGNORE didn't insert, get existing conversation
-    $conversationId = $conn->lastInsertId();
-    if (!$conversationId) {
-        // Get existing conversation ID
-        $getConversationSql = "SELECT id FROM conversations WHERE (user1_phone = ? AND user2_phone = ?) OR (user1_phone = ? AND user2_phone = ?)";
-        $stmt = $conn->prepare($getConversationSql);
-        $stmt->execute([$fromPhone, $toPhone, $toPhone, $fromPhone]);
-        $existingConversation = $stmt->fetch(PDO::FETCH_ASSOC);
-        $conversationId = $existingConversation ? $existingConversation['id'] : 0;
-    }
+    // Check if conversation was created or already exists
+    $getConversationSql = "SELECT id FROM conversations WHERE (participant1_phone = ? AND participant2_phone = ?) OR (participant1_phone = ? AND participant2_phone = ?)";
+    $stmt = $conn->prepare($getConversationSql);
+    $stmt->execute([$fromPhone, $toPhone, $toPhone, $fromPhone]);
+    $existingConversation = $stmt->fetch(PDO::FETCH_ASSOC);
+    $conversationId = $existingConversation ? $existingConversation['id'] : $conversationId;
     
     error_log("✅ Conversation ID: $conversationId");
     
-    // 4. Create notification for both users
-    $notification_data = [
-        'type' => 'auto_friend_request_accepted',
-        'title' => 'Tự động kết bạn thành công',
-        'body' => 'Bạn và ' . $fromUser['userName'] . ' đã được kết bạn tự động qua hệ thống Premium!',
-        'details' => [
-            'accepter_phone' => $toPhone,
-            'accepter_name' => $toUser['userName'],
-            'requester_phone' => $fromPhone,
-            'requester_name' => $fromUser['userName'],
-            'original_request_id' => $requestId,
-            'conversation_id' => $conversationId
-        ]
-    ];
-    
-    // Only create notifications if conversation was created or found
+    // 4. Create notifications for both users
     if ($conversationId) {
-        $insertNotifSql = "INSERT INTO notifications (user_phone, type, title, body) VALUES (?, ?, ?, ?)";
-        $stmt = $conn->prepare($insertNotifSql);
+        $notificationMessage = "Bạn và " . $fromUser['userName'] . " đã được kết bạn tự động qua hệ thống Premium!";
+        
+        // Notification for fromPhone (requester)
+        $createNotificationSql = "INSERT INTO notifications (user_phone, title, message, type, related_id) VALUES (?, ?, ?, 'friend_request_accepted', ?)";
+        $stmt = $conn->prepare($createNotificationSql);
         
         if (!$stmt) {
             throw new Exception("Failed to prepare notification query: " . print_r($conn->errorInfo(), true));
         }
         
-        // Notification for both users
-        if (!$stmt->execute([
-            $fromPhone,
-            $notification_data['type'],
-            $notification_data['title'],
-            $notification_data['body']
-        ])) {
-            throw new Exception("Failed to execute notification query 1: " . print_r($stmt->errorInfo(), true));
+        if (!$stmt->execute([$fromPhone, 'Tự động kết bạn thành công', $notificationMessage, $requestId])) {
+            throw new Exception("Failed to execute notification query for fromPhone: " . print_r($stmt->errorInfo(), true));
         }
         
-        if (!$stmt->execute([
-            $toPhone,
-            $notification_data['type'],
-            $notification_data['title'],
-            $notification_data['body']
-        ])) {
-            throw new Exception("Failed to execute notification query 2: " . print_r($stmt->errorInfo(), true));
+        // Notification for toPhone (accepter)
+        $notificationMessage2 = "Bạn và " . $toUser['userName'] . " đã được kết bạn tự động qua hệ thống Premium!";
+        
+        if (!$stmt->execute([$toPhone, 'Tự động kết bạn thành công', $notificationMessage2, $requestId])) {
+            throw new Exception("Failed to execute notification query for toPhone: " . print_r($stmt->errorInfo(), true));
         }
         
         error_log("✅ Notifications created for both users");
@@ -192,7 +185,6 @@ try {
         // 5. Send real-time notifications to socket server
         $fromNotificationSent = false;
         $toNotificationSent = false;
-        
         try {
             $notificationPayload = [
                 'type' => 'auto_friend_request_accepted',
@@ -232,15 +224,14 @@ try {
         error_log("⚠️ No conversation ID available, skipping notifications");
     }
     
-    // Commit transaction
     $conn->commit();
     error_log("✅ Transaction committed successfully");
     
     $responseData = [
         'friendship_created' => true,
-        'conversation_created' => $conversationId > 0,
-        'notifications_sent' => $conversationId > 0,
-        'real_time_notifications_sent' => isset($fromNotificationSent) && isset($toNotificationSent) ? ($fromNotificationSent && $toNotificationSent) : false,
+        'conversation_created' => !empty($conversationId),
+        'notifications_sent' => !empty($conversationId),
+        'real_time_notifications_sent' => $fromNotificationSent && $toNotificationSent,
         'accepter_name' => $toUser['userName'],
         'requester_name' => $fromUser['userName'],
         'conversation_id' => $conversationId

@@ -64,7 +64,14 @@ try {
             throw new Exception("One or both users not found - fromUser: " . ($fromUser ? 'found' : 'not found') . ", toUser: " . ($toUser ? 'found' : 'not found'));
         }
         
-        error_log("✅ Users found - From: " . $fromUser['userName'] . ", To: " . $toUser['userName']);
+        error_log("✅ Users found - From: " . $fromUser['userName'] . " (phone: $fromPhone), To: " . $toUser['userName'] . " (phone: $toPhone)");
+        
+        // Validate that users are not trying to friend themselves
+        if ($fromPhone === $toPhone) {
+            throw new Exception("Self-friending detected: $fromPhone");
+        }
+        
+        error_log("✅ Self-friending validation passed");
         
         // Check database schema for friend_requests table
         $checkTableSql = "DESCRIBE friend_requests";

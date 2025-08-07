@@ -36,6 +36,13 @@ try {
     $columns = $stmt->fetchAll(PDO::FETCH_ASSOC);
     echo "<pre>" . json_encode($columns, JSON_PRETTY_PRINT) . "</pre>";
     
+    // Check notifications table structure in detail
+    echo "<h2>notifications table structure (detailed):</h2>";
+    $stmt = $conn->prepare("SHOW CREATE TABLE notifications");
+    $stmt->execute();
+    $createTable = $stmt->fetch(PDO::FETCH_ASSOC);
+    echo "<pre>" . json_encode($createTable, JSON_PRETTY_PRINT) . "</pre>";
+    
     // Check user table
     echo "<h2>user table:</h2>";
     $stmt = $conn->prepare("DESCRIBE user");
