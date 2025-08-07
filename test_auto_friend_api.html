@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Auto Friend API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-button {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056CC;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+        }
+        .success {
+            background: #D4EDDA;
+            color: #155724;
+            border: 1px solid #C3E6CB;
+        }
+        .error {
+            background: #F8D7DA;
+            color: #721C24;
+            border: 1px solid #F5C6CB;
+        }
+        input {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Auto Friend API</h1>
+    
+    <div class="test-section">
+        <h3>1. Create Auto Friend Request</h3>
+        <input type="text" id="fromPhone" placeholder="From Phone" value="1111111112">
+        <input type="text" id="toPhone" placeholder="To Phone" value="1111111111">
+        <button class="test-button" onclick="testCreateAutoFriendRequest()">Test Create Request</button>
+        <div id="createResult" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>2. Auto Accept Friend Request</h3>
+        <input type="number" id="requestId" placeholder="Request ID">
+        <button class="test-button" onclick="testAutoAcceptFriendRequest()">Test Accept Request</button>
+        <div id="acceptResult" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>3. Complete Auto Friend Process</h3>
+        <input type="text" id="relativePhone" placeholder="Relative Phone" value="1111111112">
+        <input type="text" id="elderlyPrivateKey" placeholder="Elderly Private Key" value="zwq8px07">
+        <button class="test-button" onclick="testCompleteAutoFriendProcess()">Test Complete Process</button>
+        <div id="completeResult" class="result"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost/viegrandapp/viegrandApp/backend';
+        
+        async function makeRequest(endpoint, data) {
+            try {
+                const response = await fetch(`${API_BASE}/${endpoint}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const text = await response.text();
+                console.log('Raw response:', text);
+                
+                let jsonData;
+                try {
+                    jsonData = JSON.parse(text);
+                } catch (e) {
+                    // Try to extract JSON from PHP warnings
+                    const jsonMatch = text.match(/\{.*\}$/);
+                    if (jsonMatch) {
+                        jsonData = JSON.parse(jsonMatch[0]);
+                    } else {
+                        throw new Error('Invalid JSON response');
+                    }
+                }
+                
+                return {
+                    success: response.ok,
+                    status: response.status,
+                    data: jsonData,
+                    rawText: text
+                };
+            } catch (error) {
+                return {
+                    success: false,
+                    error: error.message,
+                    rawText: error.toString()
+                };
+            }
+        }
+        
+        function showResult(elementId, result, isSuccess = true) {
+            const element = document.getElementById(elementId);
+            element.className = `result ${isSuccess ? 'success' : 'error'}`;
+            element.textContent = JSON.stringify(result, null, 2);
+        }
+        
+        async function testCreateAutoFriendRequest() {
+            const fromPhone = document.getElementById('fromPhone').value;
+            const toPhone = document.getElementById('toPhone').value;
+            
+            const result = await makeRequest('create_auto_friend_request.php', {
+                from_phone: fromPhone,
+                to_phone: toPhone
+            });
+            
+            showResult('createResult', result, result.success);
+            
+            if (result.success && result.data && result.data.request_id) {
+                document.getElementById('requestId').value = result.data.request_id;
+            }
+        }
+        
+        async function testAutoAcceptFriendRequest() {
+            const requestId = document.getElementById('requestId').value;
+            
+            if (!requestId) {
+                showResult('acceptResult', { error: 'Please enter a request ID' }, false);
+                return;
+            }
+            
+            const result = await makeRequest('auto_accept_friend_request.php', {
+                request_id: parseInt(requestId)
+            });
+            
+            showResult('acceptResult', result, result.success);
+        }
+        
+        async function testCompleteAutoFriendProcess() {
+            const relativePhone = document.getElementById('relativePhone').value;
+            const elderlyPrivateKey = document.getElementById('elderlyPrivateKey').value;
+            
+            // Step 1: Get user by private key
+            const userResult = await makeRequest('get_user_by_private_key.php', {
+                private_key: elderlyPrivateKey
+            });
+            
+            if (!userResult.success) {
+                showResult('completeResult', { error: 'Failed to get user by private key', details: userResult }, false);
+                return;
+            }
+            
+            // Step 2: Create auto friend request
+            const createResult = await makeRequest('create_auto_friend_request.php', {
+                from_phone: relativePhone,
+                to_phone: userResult.data.user.phone
+            });
+            
+            if (!createResult.success) {
+                showResult('completeResult', { error: 'Failed to create friend request', details: createResult }, false);
+                return;
+            }
+            
+            // Step 3: Auto accept friend request
+            const acceptResult = await makeRequest('auto_accept_friend_request.php', {
+                request_id: createResult.data.request_id
+            });
+            
+            const completeResult = {
+                step1_user: userResult,
+                step2_create: createResult,
+                step3_accept: acceptResult,
+                overall_success: userResult.success && createResult.success && acceptResult.success
+            };
+            
+            showResult('completeResult', completeResult, completeResult.overall_success);
+        }
+    </script>
+</body>
+</html>
