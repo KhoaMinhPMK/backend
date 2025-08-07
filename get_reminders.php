@@ -17,15 +17,16 @@ try {
         throw new Exception('Method not allowed', 405);
     }
 
-    // Lấy email từ query parameter
+    // Lấy private key từ query parameter (ưu tiên nếu có)
+    $privateKey = $_GET['private_key_nguoi_nhan'] ?? '';
     $email = $_GET['email'] ?? '';
     
-    if (empty($email)) {
-        throw new Exception('Email is required', 400);
+    if (empty($privateKey) && empty($email)) {
+        throw new Exception('Private key hoặc Email is required', 400);
     }
 
     // Validate email format
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    if (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         throw new Exception('Invalid email format', 400);
     }
 
@@ -33,23 +34,42 @@ try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4", DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-    // Query để lấy nhắc nhở theo email
-    $sql = "SELECT 
-                id,
-                email_nguoi_dung,
-                ten_nguoi_dung,
-                thoi_gian,
-                ngay_gio,
-                noi_dung,
-                trang_thai,
-                ngay_tao,
-                ngay_cap_nhat
-            FROM nhac_nho 
-            WHERE email_nguoi_dung = :email 
-            ORDER BY ngay_gio ASC";
-
-    $stmt = $pdo->prepare($sql);
-    $stmt->bindParam(':email', $email, PDO::PARAM_STR);
+    // Query để lấy nhắc nhở theo private key hoặc email
+    if (!empty($privateKey)) {
+        $sql = "SELECT 
+                    id,
+                    email_nguoi_dung,
+                    ten_nguoi_dung,
+                    thoi_gian,
+                    ngay_gio,
+                    noi_dung,
+                    trang_thai,
+                    ngay_tao,
+                    ngay_cap_nhat,
+                    private_key_nguoi_nhan
+                FROM nhac_nho 
+                WHERE private_key_nguoi_nhan = :private_key 
+                ORDER BY ngay_gio ASC";
+        $stmt = $pdo->prepare($sql);
+        $stmt->bindParam(':private_key', $privateKey, PDO::PARAM_STR);
+    } else {
+        $sql = "SELECT 
+                    id,
+                    email_nguoi_dung,
+                    ten_nguoi_dung,
+                    thoi_gian,
+                    ngay_gio,
+                    noi_dung,
+                    trang_thai,
+                    ngay_tao,
+                    ngay_cap_nhat,
+                    private_key_nguoi_nhan
+                FROM nhac_nho 
+                WHERE email_nguoi_dung = :email 
+                ORDER BY ngay_gio ASC";
+        $stmt = $pdo->prepare($sql);
+        $stmt->bindParam(':email', $email, PDO::PARAM_STR);
+    }
     $stmt->execute();
 
     $reminders = $stmt->fetchAll(PDO::FETCH_ASSOC);

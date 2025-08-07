@@ -29,3 +29,6 @@ MODIFY COLUMN `noi_dung` text NOT NULL COMMENT 'Nội dung nhắc nhở',
 MODIFY COLUMN `trang_thai` enum('chua_thuc_hien','da_thuc_hien','da_huy') DEFAULT 'chua_thuc_hien' COMMENT 'Trạng thái nhắc nhở',
 MODIFY COLUMN `ngay_tao` timestamp DEFAULT CURRENT_TIMESTAMP COMMENT 'Thời gian tạo nhắc nhở',
 MODIFY COLUMN `ngay_cap_nhat` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Thời gian cập nhật cuối cùng'; 
+
+ALTER TABLE `nhac_nho` 
+ADD COLUMN `private_key_nguoi_nhan` varchar(255) DEFAULT NULL COMMENT 'Private key của người cao tuổi nhận nhắc nhở' AFTER `email_nguoi_dung`; 

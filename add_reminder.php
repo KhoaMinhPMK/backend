@@ -30,9 +30,10 @@ try {
     $noiDung = $input['noi_dung'] ?? '';
     $ngayGio = $input['ngay_gio'] ?? '';
     $thoiGian = $input['thoi_gian'] ?? '';
+    $privateKeyNguoiNhan = $input['private_key_nguoi_nhan'] ?? '';
     
-    if (empty($email) || empty($tenNguoiDung) || empty($noiDung) || empty($ngayGio) || empty($thoiGian)) {
-        throw new Exception('Missing required fields: email, ten_nguoi_dung, noi_dung, ngay_gio, thoi_gian', 400);
+    if (empty($email) || empty($tenNguoiDung) || empty($noiDung) || empty($ngayGio) || empty($thoiGian) || empty($privateKeyNguoiNhan)) {
+        throw new Exception('Missing required fields: email, ten_nguoi_dung, noi_dung, ngay_gio, thoi_gian, private_key_nguoi_nhan', 400);
     }
 
     // Validate email format
@@ -55,13 +56,14 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
     // Thêm nhắc nhở mới
-    $sql = "INSERT INTO nhac_nho (email_nguoi_dung, ten_nguoi_dung, thoi_gian, ngay_gio, noi_dung, trang_thai) VALUES (:email, :ten_nguoi_dung, :thoi_gian, :ngay_gio, :noi_dung, 'chua_thuc_hien')";
+    $sql = "INSERT INTO nhac_nho (email_nguoi_dung, ten_nguoi_dung, thoi_gian, ngay_gio, noi_dung, trang_thai, private_key_nguoi_nhan) VALUES (:email, :ten_nguoi_dung, :thoi_gian, :ngay_gio, :noi_dung, 'chua_thuc_hien', :private_key_nguoi_nhan)";
     $stmt = $pdo->prepare($sql);
     $stmt->bindParam(':email', $email, PDO::PARAM_STR);
     $stmt->bindParam(':ten_nguoi_dung', $tenNguoiDung, PDO::PARAM_STR);
     $stmt->bindParam(':thoi_gian', $thoiGian, PDO::PARAM_STR);
     $stmt->bindParam(':ngay_gio', $ngayGio, PDO::PARAM_STR);
     $stmt->bindParam(':noi_dung', $noiDung, PDO::PARAM_STR);
+    $stmt->bindParam(':private_key_nguoi_nhan', $privateKeyNguoiNhan, PDO::PARAM_STR);
     $stmt->execute();
 
     $reminderId = $pdo->lastInsertId();
@@ -75,7 +77,8 @@ try {
             'ten_nguoi_dung' => $tenNguoiDung,
             'noi_dung' => $noiDung,
             'ngay_gio' => $ngayGio,
-            'thoi_gian' => $thoiGian
+            'thoi_gian' => $thoiGian,
+            'private_key_nguoi_nhan' => $privateKeyNguoiNhan
         ]
     ]);
 
