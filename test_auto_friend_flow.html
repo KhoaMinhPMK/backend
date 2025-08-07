@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Auto Friend Flow</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        input, button {
+            padding: 8px 12px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Auto Friend Flow</h1>
+        <p>Test the complete auto-friend process when adding elderly to premium subscription.</p>
+
+        <div class="test-section">
+            <h3>1. Get User by Private Key</h3>
+            <input type="text" id="testPrivateKey" placeholder="Enter elderly private key" style="width: 300px;">
+            <button onclick="testGetUserByPrivateKey()">Test Get User</button>
+            <div id="getUserResult" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. Create Auto Friend Request</h3>
+            <input type="text" id="fromPhone" placeholder="From phone (relative)" style="width: 200px;">
+            <input type="text" id="toPhone" placeholder="To phone (elderly)" style="width: 200px;">
+            <button onclick="testCreateAutoFriendRequest()">Test Create Request</button>
+            <div id="createRequestResult" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. Auto Accept Friend Request</h3>
+            <input type="number" id="requestId" placeholder="Request ID" style="width: 100px;">
+            <button onclick="testAutoAcceptFriendRequest()">Test Auto Accept</button>
+            <div id="autoAcceptResult" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>4. Complete Auto Friend Process</h3>
+            <input type="text" id="relativePhone" placeholder="Relative phone" style="width: 200px;">
+            <input type="text" id="elderlyPrivateKey" placeholder="Elderly private key" style="width: 300px;">
+            <button onclick="testCompleteAutoFriendProcess()">Test Complete Process</button>
+            <div id="completeProcessResult" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>5. Add Elderly to Premium (Full Flow)</h3>
+            <input type="number" id="relativeUserId" placeholder="Relative user ID" style="width: 100px;">
+            <input type="text" id="elderlyPrivateKeyFull" placeholder="Elderly private key" style="width: 300px;">
+            <button onclick="testAddElderlyToPremium()">Test Add to Premium</button>
+            <div id="addToPremiumResult" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        const baseUrl = window.location.origin + '/backend';
+        
+        function updateResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `result ${type}`;
+        }
+        
+        async function testGetUserByPrivateKey() {
+            const privateKey = document.getElementById('testPrivateKey').value;
+            if (!privateKey) {
+                updateResult('getUserResult', 'Please enter a private key', 'error');
+                return;
+            }
+            
+            try {
+                updateResult('getUserResult', 'Testing get user by private key...', 'info');
+                const response = await fetch(`${baseUrl}/get_user_by_private_key.php`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ private_key: privateKey })
+                });
+                const data = await response.json();
+                updateResult('getUserResult', JSON.stringify(data, null, 2), data.success ? 'success' : 'error');
+            } catch (error) {
+                updateResult('getUserResult', 'Error: ' + error.message, 'error');
+            }
+        }
+        
+        async function testCreateAutoFriendRequest() {
+            const fromPhone = document.getElementById('fromPhone').value;
+            const toPhone = document.getElementById('toPhone').value;
+            if (!fromPhone || !toPhone) {
+                updateResult('createRequestResult', 'Please enter both phone numbers', 'error');
+                return;
+            }
+            
+            try {
+                updateResult('createRequestResult', 'Testing create auto friend request...', 'info');
+                const response = await fetch(`${baseUrl}/create_auto_friend_request.php`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ from_phone: fromPhone, to_phone: toPhone })
+                });
+                const data = await response.json();
+                updateResult('createRequestResult', JSON.stringify(data, null, 2), data.success ? 'success' : 'error');
+            } catch (error) {
+                updateResult('createRequestResult', 'Error: ' + error.message, 'error');
+            }
+        }
+        
+        async function testAutoAcceptFriendRequest() {
+            const requestId = document.getElementById('requestId').value;
+            if (!requestId) {
+                updateResult('autoAcceptResult', 'Please enter a request ID', 'error');
+                return;
+            }
+            
+            try {
+                updateResult('autoAcceptResult', 'Testing auto accept friend request...', 'info');
+                const response = await fetch(`${baseUrl}/auto_accept_friend_request.php`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ request_id: parseInt(requestId) })
+                });
+                const data = await response.json();
+                updateResult('autoAcceptResult', JSON.stringify(data, null, 2), data.success ? 'success' : 'error');
+            } catch (error) {
+                updateResult('autoAcceptResult', 'Error: ' + error.message, 'error');
+            }
+        }
+        
+        async function testCompleteAutoFriendProcess() {
+            const relativePhone = document.getElementById('relativePhone').value;
+            const elderlyPrivateKey = document.getElementById('elderlyPrivateKey').value;
+            if (!relativePhone || !elderlyPrivateKey) {
+                updateResult('completeProcessResult', 'Please enter both relative phone and elderly private key', 'error');
+                return;
+            }
+            
+            try {
+                updateResult('completeProcessResult', 'Testing complete auto friend process...', 'info');
+                
+                // Step 1: Get elderly user
+                const getUserResponse = await fetch(`${baseUrl}/get_user_by_private_key.php`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ private_key: elderlyPrivateKey })
+                });
+                const getUserData = await getUserResponse.json();
+                
+                if (!getUserData.success) {
+                    updateResult('completeProcessResult', 'Failed to get elderly user: ' + JSON.stringify(getUserData, null, 2), 'error');
+                    return;
+                }
+                
+                // Step 2: Create friend request
+                const createRequestResponse = await fetch(`${baseUrl}/create_auto_friend_request.php`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ from_phone: relativePhone, to_phone: getUserData.data.user.phone })
+                });
+                const createRequestData = await createRequestResponse.json();
+                
+                if (!createRequestData.success) {
+                    updateResult('completeProcessResult', 'Failed to create friend request: ' + JSON.stringify(createRequestData, null, 2), 'error');
+                    return;
+                }
+                
+                const requestId = createRequestData.data.request_id;
+                if (!requestId) {
+                    updateResult('completeProcessResult', 'Friendship already exists: ' + JSON.stringify(createRequestData, null, 2), 'success');
+                    return;
+                }
+                
+                // Step 3: Auto accept
+                const acceptResponse = await fetch(`${baseUrl}/auto_accept_friend_request.php`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ request_id: requestId })
+                });
+                const acceptData = await acceptResponse.json();
+                
+                updateResult('completeProcessResult', 'Complete process result: ' + JSON.stringify(acceptData, null, 2), acceptData.success ? 'success' : 'error');
+                
+            } catch (error) {
+                updateResult('completeProcessResult', 'Error: ' + error.message, 'error');
+            }
+        }
+        
+        async function testAddElderlyToPremium() {
+            const relativeUserId = document.getElementById('relativeUserId').value;
+            const elderlyPrivateKey = document.getElementById('elderlyPrivateKeyFull').value;
+            if (!relativeUserId || !elderlyPrivateKey) {
+                updateResult('addToPremiumResult', 'Please enter both relative user ID and elderly private key', 'error');
+                return;
+            }
+            
+            try {
+                updateResult('addToPremiumResult', 'Testing add elderly to premium...', 'info');
+                const response = await fetch(`${baseUrl}/add_elderly_to_premium.php`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        relative_user_id: parseInt(relativeUserId), 
+                        elderly_private_key: elderlyPrivateKey 
+                    })
+                });
+                const data = await response.json();
+                updateResult('addToPremiumResult', JSON.stringify(data, null, 2), data.success ? 'success' : 'error');
+            } catch (error) {
+                updateResult('addToPremiumResult', 'Error: ' + error.message, 'error');
+            }
+        }
+    </script>
+</body>
+</html>
