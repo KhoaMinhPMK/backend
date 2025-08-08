@@ -76,6 +76,7 @@ try {
                         'email' => $user['email'],
                         'phone' => $user['phone'], // Thêm field phone
                         'role' => $user['role'], // Thêm field role
+                        'private_key' => $user['private_key'], // Thêm private key
                         'age' => $user['age'],
                         'gender' => $user['gender'],
                         'blood' => $user['blood'],
