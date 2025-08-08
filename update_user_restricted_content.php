@@ -32,6 +32,23 @@ try {
         exit;
     }
     
+    // First, check if the restricted_contents column exists
+    $checkColumnStmt = $pdo->prepare("SHOW COLUMNS FROM user LIKE 'restricted_contents'");
+    $checkColumnStmt->execute();
+    $columnExists = $checkColumnStmt->fetch();
+    
+    if (!$columnExists) {
+        // Column doesn't exist, create it first
+        try {
+            $createColumnStmt = $pdo->prepare("ALTER TABLE user ADD COLUMN restricted_contents json DEFAULT NULL COMMENT 'Array of keywords that this elderly user should not watch'");
+            $createColumnStmt->execute();
+        } catch (PDOException $e) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Failed to create restricted_contents column: ' . $e->getMessage()]);
+            exit;
+        }
+    }
+    
     // Update restricted content for the user
     $stmt = $pdo->prepare("UPDATE user SET restricted_contents = ? WHERE userId = ?");
     $result = $stmt->execute([json_encode($restrictedContents), $userId]);

@@ -23,6 +23,21 @@ try {
         exit;
     }
     
+    // First, check if the restricted_contents column exists
+    $checkColumnStmt = $pdo->prepare("SHOW COLUMNS FROM user LIKE 'restricted_contents'");
+    $checkColumnStmt->execute();
+    $columnExists = $checkColumnStmt->fetch();
+    
+    if (!$columnExists) {
+        // Column doesn't exist, return empty array
+        echo json_encode([
+            'success' => true,
+            'restricted_contents' => [],
+            'message' => 'Column not found, returning empty array'
+        ]);
+        exit;
+    }
+    
     // Get restricted content for the user
     $stmt = $pdo->prepare("SELECT restricted_contents FROM user WHERE userId = ?");
     $stmt->execute([$userId]);
