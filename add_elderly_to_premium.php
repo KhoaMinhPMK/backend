@@ -86,9 +86,28 @@ try {
         $elderlyKeys = [];
     }
     
-    // Check if this elderly user is already added
+    // Check if this elderly user is already added to this subscription
     if (in_array($elderlyPrivateKey, $elderlyKeys)) {
         echo json_encode(['success' => false, 'message' => 'This elderly user is already in the premium subscription']);
+        exit;
+    }
+    
+    // Check if this elderly user is already in another premium subscription
+    $checkOtherPremiumStmt = $pdo->prepare("
+        SELECT ps.premium_key, ps.young_person_key, u.userName as relative_name 
+        FROM premium_subscriptions_json ps 
+        JOIN user u ON u.private_key = ps.young_person_key 
+        WHERE JSON_CONTAINS(ps.elderly_keys, ?) 
+        AND ps.young_person_key != ?
+    ");
+    $checkOtherPremiumStmt->execute([json_encode($elderlyPrivateKey), $relative['private_key']]);
+    $existingPremium = $checkOtherPremiumStmt->fetch();
+    
+    if ($existingPremium) {
+        echo json_encode([
+            'success' => false, 
+            'message' => "Người thân này đã thuộc về gia đình khác (quản lý bởi: {$existingPremium['relative_name']}). Không thể thêm vào gia đình này."
+        ]);
         exit;
     }
     
