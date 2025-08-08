@@ -49,6 +49,19 @@ try {
     $stmt->execute();
     $columns = $stmt->fetchAll(PDO::FETCH_ASSOC);
     echo "<pre>" . json_encode($columns, JSON_PRETTY_PRINT) . "</pre>";
+
+    // Check nhac_nho table (reminders)
+    echo "<h2>nhac_nho table:</h2>";
+    $stmt = $conn->prepare("DESCRIBE nhac_nho");
+    $stmt->execute();
+    $columns = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    echo "<pre>" . json_encode($columns, JSON_PRETTY_PRINT) . "</pre>";
+
+    echo "<h2>nhac_nho table structure (detailed):</h2>";
+    $stmt = $conn->prepare("SHOW CREATE TABLE nhac_nho");
+    $stmt->execute();
+    $createTable = $stmt->fetch(PDO::FETCH_ASSOC);
+    echo "<pre>" . json_encode($createTable, JSON_PRETTY_PRINT) . "</pre>";
     
 } catch (Exception $e) {
     echo "<h1>Error</h1>";
