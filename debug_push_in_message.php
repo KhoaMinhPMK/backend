@@ -112,14 +112,14 @@ try {
         $notificationBody,
         [
             'type' => 'message',
-            'conversation_id' => $conversation_id,
-            'sender_phone' => $sender_phone,
-            'receiver_phone' => $receiver_phone,
-            'message_id' => $message_id,
-            'message_text' => $message_text,
-            'message_type' => $message_type,
-            'sender_name' => $senderName,
-            'receiver_name' => $receiverName,
+            'conversation.id' => $conversation_id,
+            'sender.phone' => $sender_phone,
+            'receiver.phone' => $receiver_phone,
+            'message.id' => $message_id,
+            'message.text' => $message_text,
+            'message.type' => $message_type,
+            'sender.name' => $senderName,
+            'receiver.name' => $receiverName,
             'timestamp' => date('Y-m-d H:i:s')
         ]
     );

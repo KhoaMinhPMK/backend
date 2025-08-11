@@ -99,6 +99,7 @@ function sendPushNotification($userEmail, $title, $body, $data = []) {
         }
         
         // Convert all data values to strings (FCM requirement)
+        // FCM has restrictions on data payload keys - no underscores allowed
         $stringData = [];
         foreach (array_merge($data, [
             'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
@@ -106,7 +107,9 @@ function sendPushNotification($userEmail, $title, $body, $data = []) {
             'status' => 'done',
             'screen' => 'message'
         ]) as $key => $value) {
-            $stringData[$key] = (string)$value;
+            // Convert underscores to dots for FCM compatibility
+            $fcmKey = str_replace('_', '.', $key);
+            $stringData[$fcmKey] = (string)$value;
         }
         
         // Prepare FCM HTTP v1 API payload
