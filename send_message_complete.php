@@ -84,14 +84,14 @@ try {
         
         // Step 5: Send push notification to receiver
         // Always send push notification when a message is sent
-        $getReceiverEmailSql = "SELECT email, userName FROM user WHERE phone = ?";
+        $getReceiverEmailSql = "SELECT userId, email, userName FROM user WHERE phone = ?";
         $getReceiverEmailStmt = $pdo->prepare($getReceiverEmailSql);
         $getReceiverEmailStmt->execute([$receiver_phone]);
         $receiverData = $getReceiverEmailStmt->fetch(PDO::FETCH_ASSOC);
         
         if ($receiverData && $receiverData['email']) {
             // Get sender's name for notification
-            $getSenderNameSql = "SELECT userName FROM user WHERE phone = ?";
+            $getSenderNameSql = "SELECT userId, userName FROM user WHERE phone = ?";
             $getSenderNameStmt = $pdo->prepare($getSenderNameSql);
             $getSenderNameStmt->execute([$sender_phone]);
             $senderData = $getSenderNameStmt->fetch(PDO::FETCH_ASSOC);
