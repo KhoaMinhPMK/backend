@@ -1,9 +1,64 @@
 <?php
 require_once 'config.php';
 
-// Firebase Cloud Messaging configuration
-define('FCM_SERVER_KEY', 'YOUR_FCM_SERVER_KEY_HERE'); // Replace with your actual FCM server key
-define('FCM_URL', 'https://fcm.googleapis.com/fcm/send');
+// Firebase Cloud Messaging configuration for HTTP v1 API
+define('FCM_PROJECT_ID', 'viegrand-487bd'); // Replace with your Firebase project ID
+define('FCM_SERVICE_ACCOUNT_FILE', __DIR__ . '/firebase-service-account.json');
+define('FCM_URL', 'https://fcm.googleapis.com/v1/projects/' . FCM_PROJECT_ID . '/messages:send');
+
+/**
+ * Get OAuth2 access token for Firebase
+ */
+function getFirebaseAccessToken() {
+    if (!file_exists(FCM_SERVICE_ACCOUNT_FILE)) {
+        error_log("❌ Firebase service account file not found: " . FCM_SERVICE_ACCOUNT_FILE);
+        return false;
+    }
+    
+    $serviceAccount = json_decode(file_get_contents(FCM_SERVICE_ACCOUNT_FILE), true);
+    
+    // Create JWT token
+    $header = json_encode(['alg' => 'RS256', 'typ' => 'JWT']);
+    $payload = json_encode([
+        'iss' => $serviceAccount['client_email'],
+        'scope' => 'https://www.googleapis.com/auth/firebase.messaging',
+        'aud' => 'https://oauth2.googleapis.com/token',
+        'exp' => time() + 3600,
+        'iat' => time()
+    ]);
+    
+    $base64Header = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($header));
+    $base64Payload = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($payload));
+    
+    $signature = '';
+    openssl_sign($base64Header . "." . $base64Payload, $signature, $serviceAccount['private_key'], 'SHA256');
+    $base64Signature = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($signature));
+    
+    $jwt = $base64Header . "." . $base64Payload . "." . $base64Signature;
+    
+    // Exchange JWT for access token
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, 'https://oauth2.googleapis.com/token');
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
+        'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+        'assertion' => $jwt
+    ]));
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/x-www-form-urlencoded']);
+    
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    
+    if ($httpCode === 200) {
+        $tokenData = json_decode($response, true);
+        return $tokenData['access_token'];
+    }
+    
+    error_log("❌ Failed to get access token: $response");
+    return false;
+}
 
 /**
  * Send push notification to a specific user
@@ -34,32 +89,53 @@ function sendPushNotification($userEmail, $title, $body, $data = []) {
         
         $deviceToken = $userData['device_token'];
         
-        // Prepare FCM payload
+        // Get access token
+        $accessToken = getFirebaseAccessToken();
+        if (!$accessToken) {
+            return [
+                'success' => false,
+                'message' => 'Failed to get Firebase access token'
+            ];
+        }
+        
+        // Prepare FCM HTTP v1 API payload
         $fcmPayload = [
-            'to' => $deviceToken,
-            'notification' => [
-                'title' => $title,
-                'body' => $body,
-                'sound' => 'default',
-                'badge' => 1,
-                'click_action' => 'FLUTTER_NOTIFICATION_CLICK'
-            ],
-            'data' => array_merge($data, [
-                'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
-                'sound' => 'default',
-                'status' => 'done',
-                'screen' => 'message'
-            ]),
-            'priority' => 'high',
-            'content_available' => true
+            'message' => [
+                'token' => $deviceToken,
+                'notification' => [
+                    'title' => $title,
+                    'body' => $body
+                ],
+                'data' => array_merge($data, [
+                    'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
+                    'sound' => 'default',
+                    'status' => 'done',
+                    'screen' => 'message'
+                ]),
+                'android' => [
+                    'priority' => 'high',
+                    'notification' => [
+                        'sound' => 'default',
+                        'channel_id' => 'viegrand_messages'
+                    ]
+                ],
+                'apns' => [
+                    'payload' => [
+                        'aps' => [
+                            'sound' => 'default',
+                            'badge' => 1
+                        ]
+                    ]
+                ]
+            ]
         ];
         
-        // Send to FCM
+        // Send to FCM HTTP v1 API
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, FCM_URL);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Authorization: key=' . FCM_SERVER_KEY,
+            'Authorization: Bearer ' . $accessToken,
             'Content-Type: application/json'
         ]);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -81,7 +157,7 @@ function sendPushNotification($userEmail, $title, $body, $data = []) {
         
         $responseData = json_decode($response, true);
         
-        if ($httpCode === 200 && isset($responseData['success']) && $responseData['success'] == 1) {
+        if ($httpCode === 200 && isset($responseData['name'])) {
             error_log("✅ Push notification sent successfully to $userEmail");
             return [
                 'success' => true,
