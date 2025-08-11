@@ -3,7 +3,7 @@ require_once 'config.php';
 require_once 'send_push_notification.php';
 
 // Test configuration
-$testEmail = 'phamquochuy131106@gmail.com'; // Replace with a real user email from your database
+$testEmail = 'a@gmail.com'; // Replace with a real user email from your database
 
 echo "🧪 Testing push notification...\n";
 echo "📧 Email: $testEmail\n";
