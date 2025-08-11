@@ -82,7 +82,7 @@ try {
         $socket_result = sendToSocketServer($sender_phone, $receiver_phone, $message_text, $conversation_id, $message_id, $message_type, $file_url);
         error_log("send_message_complete - Socket server result: " . ($socket_result ? 'success' : 'failed'));
         
-        // Step 5: Send push notification if user is offline
+        // Step 5: Send push notification if user is offline or not in chat screen
         if (!$socket_result) {
             // Get receiver's email for push notification
             $getReceiverEmailSql = "SELECT email FROM user WHERE phone = ?";
@@ -121,6 +121,10 @@ try {
                 
                 error_log("send_message_complete - Push notification result: " . ($push_result['success'] ? 'success' : 'failed'));
             }
+        } else {
+            // User is online, but we should still send push notification if they're not in the specific chat
+            // This will be handled by the frontend app state tracking
+            error_log("send_message_complete - User is online, push notification will be handled by frontend app state");
         }
         
         // Return success response
