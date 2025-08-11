@@ -82,49 +82,55 @@ try {
         $socket_result = sendToSocketServer($sender_phone, $receiver_phone, $message_text, $conversation_id, $message_id, $message_type, $file_url);
         error_log("send_message_complete - Socket server result: " . ($socket_result ? 'success' : 'failed'));
         
-        // Step 5: Send push notification if user is offline or not in chat screen
-        if (!$socket_result) {
-            // Get receiver's email for push notification
-            $getReceiverEmailSql = "SELECT email FROM user WHERE phone = ?";
-            $getReceiverEmailStmt = $pdo->prepare($getReceiverEmailSql);
-            $getReceiverEmailStmt->execute([$receiver_phone]);
-            $receiverData = $getReceiverEmailStmt->fetch(PDO::FETCH_ASSOC);
+        // Step 5: Send push notification to receiver
+        // Always send push notification when a message is sent
+        $getReceiverEmailSql = "SELECT email, userName FROM user WHERE phone = ?";
+        $getReceiverEmailStmt = $pdo->prepare($getReceiverEmailSql);
+        $getReceiverEmailStmt->execute([$receiver_phone]);
+        $receiverData = $getReceiverEmailStmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($receiverData && $receiverData['email']) {
+            // Get sender's name for notification
+            $getSenderNameSql = "SELECT userName FROM user WHERE phone = ?";
+            $getSenderNameStmt = $pdo->prepare($getSenderNameSql);
+            $getSenderNameStmt->execute([$sender_phone]);
+            $senderData = $getSenderNameStmt->fetch(PDO::FETCH_ASSOC);
             
-            if ($receiverData && $receiverData['email']) {
-                // Get sender's name for notification
-                $getSenderNameSql = "SELECT userName FROM user WHERE phone = ?";
-                $getSenderNameStmt = $pdo->prepare($getSenderNameSql);
-                $getSenderNameStmt->execute([$sender_phone]);
-                $senderData = $getSenderNameStmt->fetch(PDO::FETCH_ASSOC);
-                
-                $senderName = $senderData ? $senderData['userName'] : 'Người thân';
-                $notificationTitle = "Tin nhắn mới từ $senderName";
-                $notificationBody = $message_text;
-                
-                // Include push notification function
-                require_once 'send_push_notification.php';
-                
-                $push_result = sendPushNotification(
-                    $receiverData['email'],
-                    $notificationTitle,
-                    $notificationBody,
-                    [
-                        'type' => 'message',
-                        'conversation_id' => $conversation_id,
-                        'sender_phone' => $sender_phone,
-                        'receiver_phone' => $receiver_phone,
-                        'message_id' => $message_id,
-                        'message_text' => $message_text,
-                        'message_type' => $message_type
-                    ]
-                );
-                
-                error_log("send_message_complete - Push notification result: " . ($push_result['success'] ? 'success' : 'failed'));
+            $senderName = $senderData ? $senderData['userName'] : 'Người thân';
+            $receiverName = $receiverData['userName'] ? $receiverData['userName'] : 'Người dùng';
+            
+            // Create notification title and body
+            $notificationTitle = "Tin nhắn mới từ $senderName";
+            $notificationBody = $message_text;
+            
+            // Include push notification function
+            require_once 'send_push_notification.php';
+            
+            $push_result = sendPushNotification(
+                $receiverData['email'],
+                $notificationTitle,
+                $notificationBody,
+                [
+                    'type' => 'message',
+                    'conversation_id' => $conversation_id,
+                    'sender_phone' => $sender_phone,
+                    'receiver_phone' => $receiver_phone,
+                    'message_id' => $message_id,
+                    'message_text' => $message_text,
+                    'message_type' => $message_type,
+                    'sender_name' => $senderName,
+                    'receiver_name' => $receiverName,
+                    'timestamp' => date('Y-m-d H:i:s')
+                ]
+            );
+            
+            if ($push_result['success']) {
+                error_log("send_message_complete - Push notification sent successfully to {$receiverData['email']}");
+            } else {
+                error_log("send_message_complete - Push notification failed: " . $push_result['message']);
             }
         } else {
-            // User is online, but we should still send push notification if they're not in the specific chat
-            // This will be handled by the frontend app state tracking
-            error_log("send_message_complete - User is online, push notification will be handled by frontend app state");
+            error_log("send_message_complete - No receiver email found for phone: $receiver_phone");
         }
         
         // Return success response
