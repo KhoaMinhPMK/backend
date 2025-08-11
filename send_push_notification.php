@@ -223,7 +223,8 @@ function sendPushNotificationToMultiple($userEmails, $title, $body, $data = []) 
 }
 
 // API endpoint for testing push notifications
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+// Only run this if the file is accessed directly, not when included
+if (basename($_SERVER['SCRIPT_NAME']) === 'send_push_notification.php' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     setCorsHeaders();
     
     try {
