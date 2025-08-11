@@ -2,7 +2,7 @@
 require_once 'send_push_notification.php';
 
 // Test push notification
-$testEmail = 'test@example.com'; // Replace with a real user email
+$testEmail = 'phamquochuy131106@gmail.com'; // Replace with a real user email
 $testTitle = 'Test Push Notification';
 $testBody = 'This is a test push notification from VieGrand app!';
 $testData = [
