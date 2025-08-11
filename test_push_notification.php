@@ -60,7 +60,7 @@ try {
         'This is a test push notification from VieGrand app!',
         [
             'type' => 'test',
-            'timestamp' => time()
+            'timestamp' => (string)time() // Convert to string
         ]
     );
     

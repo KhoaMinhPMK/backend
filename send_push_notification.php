@@ -98,6 +98,17 @@ function sendPushNotification($userEmail, $title, $body, $data = []) {
             ];
         }
         
+        // Convert all data values to strings (FCM requirement)
+        $stringData = [];
+        foreach (array_merge($data, [
+            'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
+            'sound' => 'default',
+            'status' => 'done',
+            'screen' => 'message'
+        ]) as $key => $value) {
+            $stringData[$key] = (string)$value;
+        }
+        
         // Prepare FCM HTTP v1 API payload
         $fcmPayload = [
             'message' => [
@@ -106,12 +117,7 @@ function sendPushNotification($userEmail, $title, $body, $data = []) {
                     'title' => $title,
                     'body' => $body
                 ],
-                'data' => array_merge($data, [
-                    'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
-                    'sound' => 'default',
-                    'status' => 'done',
-                    'screen' => 'message'
-                ]),
+                'data' => $stringData,
                 'android' => [
                     'priority' => 'high',
                     'notification' => [
