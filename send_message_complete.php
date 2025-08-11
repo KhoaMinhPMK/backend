@@ -84,17 +84,25 @@ try {
         
         // Step 5: Send push notification to receiver
         // Always send push notification when a message is sent
+        error_log("send_message_complete - Starting push notification process for receiver phone: $receiver_phone");
+        
         $getReceiverEmailSql = "SELECT userId, email, userName FROM user WHERE phone = ?";
         $getReceiverEmailStmt = $pdo->prepare($getReceiverEmailSql);
         $getReceiverEmailStmt->execute([$receiver_phone]);
         $receiverData = $getReceiverEmailStmt->fetch(PDO::FETCH_ASSOC);
         
+        error_log("send_message_complete - Receiver data query result: " . json_encode($receiverData));
+        
         if ($receiverData && $receiverData['email']) {
+            error_log("send_message_complete - Found receiver email: {$receiverData['email']}");
+            
             // Get sender's name for notification
             $getSenderNameSql = "SELECT userId, userName FROM user WHERE phone = ?";
             $getSenderNameStmt = $pdo->prepare($getSenderNameSql);
             $getSenderNameStmt->execute([$sender_phone]);
             $senderData = $getSenderNameStmt->fetch(PDO::FETCH_ASSOC);
+            
+            error_log("send_message_complete - Sender data query result: " . json_encode($senderData));
             
             $senderName = $senderData ? $senderData['userName'] : 'Người thân';
             $receiverName = $receiverData['userName'] ? $receiverData['userName'] : 'Người dùng';
@@ -103,8 +111,13 @@ try {
             $notificationTitle = "Tin nhắn mới từ $senderName";
             $notificationBody = $message_text;
             
+            error_log("send_message_complete - Notification title: $notificationTitle");
+            error_log("send_message_complete - Notification body: $notificationBody");
+            
             // Include push notification function
             require_once 'send_push_notification.php';
+            
+            error_log("send_message_complete - Calling sendPushNotification for email: {$receiverData['email']}");
             
             $push_result = sendPushNotification(
                 $receiverData['email'],
@@ -123,6 +136,8 @@ try {
                     'timestamp' => date('Y-m-d H:i:s')
                 ]
             );
+            
+            error_log("send_message_complete - Push notification result: " . json_encode($push_result));
             
             if ($push_result['success']) {
                 error_log("send_message_complete - Push notification sent successfully to {$receiverData['email']}");
