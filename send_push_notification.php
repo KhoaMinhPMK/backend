@@ -2,7 +2,7 @@
 require_once 'config.php';
 
 // Firebase Cloud Messaging configuration for HTTP v1 API
-define('FCM_PROJECT_ID', 'viegrand-487bd'); // Replace with your Firebase project ID
+define('FCM_PROJECT_ID', 'viegrand-487bd'); // Your actual Firebase project ID
 define('FCM_SERVICE_ACCOUNT_FILE', __DIR__ . '/firebase-service-account.json');
 define('FCM_URL', 'https://fcm.googleapis.com/v1/projects/' . FCM_PROJECT_ID . '/messages:send');
 
