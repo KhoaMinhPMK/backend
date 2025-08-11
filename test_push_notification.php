@@ -23,12 +23,12 @@ try {
     if (!$columnExists) {
         echo "❌ Device token column does not exist in user table!\n";
         echo "🔧 Please run the SQL command to add the column:\n";
-        echo "ALTER TABLE user ADD COLUMN device_token VARCHAR(255) DEFAULT NULL;\n\n";
+        echo "ALTER TABLE user ADD COLUMN devi54 Unknown column 'userId' in 'field list' 🔧 Stack ce_token VARCHAR(255) DEFAULT NULL;\n\n";
         exit;
     }
     
     // Get user info including device token
-    $userSql = "SELECT id, email, device_token FROM user WHERE email = ?";
+    $userSql = "SELECT userId, email, device_token FROM user WHERE email = ?";
     $userStmt = $conn->prepare($userSql);
     $userStmt->execute([$testEmail]);
     $user = $userStmt->fetch(PDO::FETCH_ASSOC);
@@ -40,7 +40,7 @@ try {
     }
     
     echo "👤 User found:\n";
-    echo "   ID: {$user['id']}\n";
+    echo "   ID: {$user['userId']}\n";
     echo "   Email: {$user['email']}\n";
     echo "   Device Token: " . ($user['device_token'] ? substr($user['device_token'], 0, 50) . '...' : 'NULL') . "\n\n";
     
