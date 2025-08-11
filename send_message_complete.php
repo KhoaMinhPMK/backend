@@ -82,6 +82,47 @@ try {
         $socket_result = sendToSocketServer($sender_phone, $receiver_phone, $message_text, $conversation_id, $message_id, $message_type, $file_url);
         error_log("send_message_complete - Socket server result: " . ($socket_result ? 'success' : 'failed'));
         
+        // Step 5: Send push notification if user is offline
+        if (!$socket_result) {
+            // Get receiver's email for push notification
+            $getReceiverEmailSql = "SELECT email FROM user WHERE phone = ?";
+            $getReceiverEmailStmt = $pdo->prepare($getReceiverEmailSql);
+            $getReceiverEmailStmt->execute([$receiver_phone]);
+            $receiverData = $getReceiverEmailStmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($receiverData && $receiverData['email']) {
+                // Get sender's name for notification
+                $getSenderNameSql = "SELECT userName FROM user WHERE phone = ?";
+                $getSenderNameStmt = $pdo->prepare($getSenderNameSql);
+                $getSenderNameStmt->execute([$sender_phone]);
+                $senderData = $getSenderNameStmt->fetch(PDO::FETCH_ASSOC);
+                
+                $senderName = $senderData ? $senderData['userName'] : 'Người thân';
+                $notificationTitle = "Tin nhắn mới từ $senderName";
+                $notificationBody = $message_text;
+                
+                // Include push notification function
+                require_once 'send_push_notification.php';
+                
+                $push_result = sendPushNotification(
+                    $receiverData['email'],
+                    $notificationTitle,
+                    $notificationBody,
+                    [
+                        'type' => 'message',
+                        'conversation_id' => $conversation_id,
+                        'sender_phone' => $sender_phone,
+                        'receiver_phone' => $receiver_phone,
+                        'message_id' => $message_id,
+                        'message_text' => $message_text,
+                        'message_type' => $message_type
+                    ]
+                );
+                
+                error_log("send_message_complete - Push notification result: " . ($push_result['success'] ? 'success' : 'failed'));
+            }
+        }
+        
         // Return success response
         $response = [
             'success' => true,
