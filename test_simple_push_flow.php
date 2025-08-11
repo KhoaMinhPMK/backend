@@ -18,7 +18,7 @@ try {
     // Step 1: Get user information
     echo "1️⃣ Getting user information...\n";
     
-    $senderSql = "SELECT id, email, phone, userName FROM user WHERE email = ?";
+    $senderSql = "SELECT userId, email, phone, userName FROM user WHERE email = ?";
     $senderStmt = $conn->prepare($senderSql);
     $senderStmt->execute([$senderEmail]);
     $sender = $senderStmt->fetch(PDO::FETCH_ASSOC);
@@ -28,7 +28,7 @@ try {
         exit;
     }
     
-    $receiverSql = "SELECT id, email, phone, userName, device_token FROM user WHERE email = ?";
+    $receiverSql = "SELECT userId, email, phone, userName, device_token FROM user WHERE email = ?";
     $receiverStmt = $conn->prepare($receiverSql);
     $receiverStmt->execute([$receiverEmail]);
     $receiver = $receiverStmt->fetch(PDO::FETCH_ASSOC);
