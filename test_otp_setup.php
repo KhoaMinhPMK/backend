@@ -67,12 +67,12 @@ if ($mailConfig) {
 // Test 4: Test with a sample user
 echo "<h2>4. Testing with Sample User</h2>";
 try {
-    $stmt = $pdo->prepare("SELECT userId, name, email FROM user WHERE email LIKE '%@%' LIMIT 1");
+    $stmt = $pdo->prepare("SELECT userId, userName, email FROM user WHERE email LIKE '%@%' LIMIT 1");
     $stmt->execute();
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if ($user) {
-        echo "✅ Found test user: {$user['name']} ({$user['email']})<br>";
+        echo "✅ Found test user: {$user['userName']} ({$user['email']})<br>";
         
         // Generate test OTP
         $testOtp = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
