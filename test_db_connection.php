@@ -66,12 +66,12 @@ try {
         echo "📊 Total users: " . $result['count'] . "<br>";
         
         // Show sample users with emails
-        $stmt = $pdo->query("SELECT userId, name, email FROM user WHERE email IS NOT NULL AND email != '' LIMIT 3");
+        $stmt = $pdo->query("SELECT userId, userName, email FROM user WHERE email IS NOT NULL AND email != '' LIMIT 3");
         $users = $stmt->fetchAll();
         if (count($users) > 0) {
             echo "📧 Sample users with emails:<br>";
             foreach ($users as $user) {
-                echo "- {$user['name']} ({$user['email']})<br>";
+                echo "- {$user['userName']} ({$user['email']})<br>";
             }
         } else {
             echo "⚠️ No users found with email addresses<br>";

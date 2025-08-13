@@ -67,7 +67,7 @@ if ($mailConfig) {
 // Test 4: Test with a sample user
 echo "<h2>4. Testing with Sample User</h2>";
 try {
-    $stmt = $pdo->prepare("SELECT userId, userName, email FROM user WHERE email LIKE '%@%' LIMIT 1");
+    $stmt = $pdo->prepare("SELECT userId, userName, email FROM user WHERE email = 'pmkkhoaminh@gmail.com' LIMIT 1");
     $stmt->execute();
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     
@@ -84,27 +84,82 @@ try {
         
         echo "✅ Test OTP inserted: $testOtp<br>";
         
-        // Test email sending
-        $subject = 'Test OTP - VieGrand App';
-        $headers = [
-            'MIME-Version: 1.0',
-            'Content-Type: text/html; charset=UTF-8',
-            'From: VieGrand App <noreply@viegrandapp.com>',
-            'Reply-To: support@viegrandapp.com',
-            'X-Mailer: PHP/' . phpversion()
-        ];
+        // Test email sending using Gmail SMTP
+        echo "<h3>Testing Gmail SMTP Email Sending</h3>";
         
-        $htmlContent = "
-        <html>
-        <body>
-            <h2>Test OTP Email</h2>
-            <p>This is a test email for OTP functionality.</p>
-            <p><strong>Test OTP: $testOtp</strong></p>
-            <p>This OTP expires in 5 minutes.</p>
-        </body>
-        </html>";
-        
-        $emailSent = mail($user['email'], $subject, $htmlContent, implode("\r\n", $headers));
+        // Check if PHPMailer is available
+        if (file_exists('PHPMailer/PHPMailer.php')) {
+            require_once 'PHPMailer/PHPMailer.php';
+            require_once 'PHPMailer/SMTP.php';
+            require_once 'PHPMailer/Exception.php';
+            
+            // Use fully qualified class names to avoid use statement issues
+            
+            try {
+                $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+                
+                // Server settings
+                $mail->isSMTP();
+                $mail->Host = 'smtp.gmail.com';
+                $mail->SMTPAuth = true;
+                $mail->Username = 'phamquochuy131106@gmail.com';
+                $mail->Password = 'qosy fhma etey vnha';
+                $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+                $mail->Port = 587;
+                $mail->CharSet = 'UTF-8';
+                
+                // Recipients
+                $mail->setFrom('phamquochuy131106@gmail.com', 'VieGrand App');
+                $mail->addAddress($user['email'], $user['userName']);
+                $mail->addReplyTo('support@viegrandapp.com', 'VieGrand Support');
+                
+                // Content
+                $mail->isHTML(true);
+                $mail->Subject = 'Test OTP - VieGrand App';
+                $mail->Body = "
+                <html>
+                <body>
+                    <h2>Test OTP Email from VieGrand App</h2>
+                    <p>This is a test email to verify Gmail SMTP configuration.</p>
+                    <p><strong>Test OTP: $testOtp</strong></p>
+                    <p>This OTP expires in 5 minutes.</p>
+                    <p>If you receive this email, the Gmail SMTP setup is working correctly!</p>
+                    <hr>
+                    <p><small>Sent from VieGrand App using Gmail SMTP</small></p>
+                </body>
+                </html>";
+                
+                $mail->AltBody = "
+                Test OTP Email from VieGrand App
+                
+                This is a test email to verify Gmail SMTP configuration.
+                Test OTP: $testOtp
+                
+                If you receive this email, the Gmail SMTP setup is working correctly!
+                
+                Sent from VieGrand App using Gmail SMTP";
+                
+                // Send email
+                $mail->send();
+                echo "✅ Test email sent successfully via Gmail SMTP!<br>";
+                echo "<p>Please check your email inbox (and spam folder) for the test email.</p>";
+                $emailSent = true;
+                
+            } catch (\Exception $e) {
+                echo "❌ Gmail SMTP email sending failed: " . $mail->ErrorInfo . "<br>";
+                echo "<h4>Troubleshooting:</h4>";
+                echo "<ul>";
+                echo "<li>Check your Gmail credentials</li>";
+                echo "<li>Verify 2-Factor Authentication is enabled</li>";
+                echo "<li>Confirm the App Password is correct</li>";
+                echo "<li>Check your internet connection</li>";
+                echo "</ul>";
+                $emailSent = false;
+            }
+        } else {
+            echo "❌ PHPMailer not found. Please run: <a href='install_phpmailer.php'>install_phpmailer.php</a><br>";
+            $emailSent = false;
+        }
         
         if ($emailSent) {
             echo "✅ Test email sent successfully<br>";
@@ -154,8 +209,8 @@ try {
 echo "<h2>Setup Instructions</h2>";
 echo "<ol>";
 echo "<li>If the OTP table doesn't exist, run: <code>mysql -u your_username -p your_database < create_otp_table.sql</code></li>";
-echo "<li>Make sure your server has mail() function enabled</li>";
-echo "<li>Configure your server's mail settings if needed</li>";
+echo "<li>Install PHPMailer: <a href='install_phpmailer.php'>install_phpmailer.php</a></li>";
+echo "<li>Configure Gmail SMTP credentials in the PHP files</li>";
 echo "<li>Test the password change functionality in the app</li>";
 echo "</ol>";
 
