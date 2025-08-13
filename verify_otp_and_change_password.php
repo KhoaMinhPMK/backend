@@ -4,6 +4,25 @@ require_once 'config.php';
 // Set CORS headers
 setCorsHeaders();
 
+// Debug: Log the incoming request
+error_log("🔍 verify_otp_and_change_password.php - Request received");
+error_log("🔍 Request method: " . $_SERVER['REQUEST_METHOD']);
+error_log("🔍 Content-Type: " . ($_SERVER['CONTENT_TYPE'] ?? 'not set'));
+
+// Get JSON input
+$input = file_get_contents('php://input');
+error_log("🔍 Raw input: " . $input);
+
+// Also log to a file for easier debugging
+$debugLog = [
+    'timestamp' => date('Y-m-d H:i:s'),
+    'method' => $_SERVER['REQUEST_METHOD'],
+    'content_type' => $_SERVER['CONTENT_TYPE'] ?? 'not set',
+    'raw_input' => $input,
+    'headers' => getallheaders()
+];
+file_put_contents('debug_request.log', json_encode($debugLog, JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
+
 // Only allow POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     sendErrorResponse('Method not allowed', 'Method not allowed', 405);
