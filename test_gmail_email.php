@@ -17,7 +17,7 @@ try {
     echo "✅ Database connection successful<br>";
     
     // Get a test user
-    $stmt = $pdo->prepare("SELECT userId, userName, email FROM user WHERE email LIKE '%@%' LIMIT 1");
+    $stmt = $pdo->prepare("SELECT userId, userName, email FROM user WHERE email LIKE 'pmkkhoaminh@gmail.com' LIMIT 1");
     $stmt->execute();
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     
