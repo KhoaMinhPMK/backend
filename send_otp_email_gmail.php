@@ -19,9 +19,19 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 require_once 'config.php';
 
+// Include PHPMailer
+require_once 'PHPMailer/PHPMailer.php';
+require_once 'PHPMailer/SMTP.php';
+require_once 'PHPMailer/Exception.php';
+
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\SMTP;
+use PHPMailer\PHPMailer\Exception;
+
 try {
     // Get database connection
     $pdo = getDatabaseConnection();
+    
     // Get JSON input
     $input = json_decode(file_get_contents('php://input'), true);
     
@@ -87,46 +97,43 @@ try {
  */
 function sendOTPEmailViaGmail($userEmail, $userName, $otp) {
     // Gmail SMTP Configuration
-    $smtpHost = 'smtp.gmail.com';
-    $smtpPort = 587;
-    $smtpUsername = 'your-email@gmail.com'; // Replace with your Gmail
-    $smtpPassword = 'your-app-password'; // Replace with your Gmail App Password
+    // ⚠️ IMPORTANT: Replace these with your actual Gmail credentials
+    $gmailUsername = 'your-email@gmail.com'; // Replace with your Gmail
+    $gmailPassword = 'your-16-char-app-password'; // Replace with your Gmail App Password
     
-    $subject = 'Mã OTP Đổi Mật Khẩu - VieGrand App';
-    
-    // Generate HTML email content
-    $htmlContent = generatePasswordResetEmailHTML($userName, $otp);
-    
-    // Generate plain text content
-    $textContent = generatePasswordResetEmailText($userName, $otp);
-    
-    // Email headers
-    $headers = [
-        'MIME-Version: 1.0',
-        'Content-Type: text/html; charset=UTF-8',
-        'From: VieGrand App <' . $smtpUsername . '>',
-        'Reply-To: support@viegrandapp.com',
-        'X-Mailer: PHP/' . phpversion()
-    ];
-    
-    // Try Gmail SMTP first, fallback to mail() function
-    $emailSent = sendEmailViaSMTP($userEmail, $subject, $htmlContent, $headers, $smtpHost, $smtpPort, $smtpUsername, $smtpPassword);
-    
-    if (!$emailSent) {
-        // Fallback to regular mail() function
-        $emailSent = mail($userEmail, $subject, $htmlContent, implode("\r\n", $headers));
+    try {
+        $mail = new PHPMailer(true);
+        
+        // Server settings
+        $mail->isSMTP();
+        $mail->Host = 'smtp.gmail.com';
+        $mail->SMTPAuth = true;
+        $mail->Username = $gmailUsername;
+        $mail->Password = $gmailPassword;
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port = 587;
+        $mail->CharSet = 'UTF-8';
+        
+        // Recipients
+        $mail->setFrom($gmailUsername, 'VieGrand App');
+        $mail->addAddress($userEmail, $userName);
+        $mail->addReplyTo('support@viegrandapp.com', 'VieGrand Support');
+        
+        // Content
+        $mail->isHTML(true);
+        $mail->Subject = 'Mã OTP Đổi Mật Khẩu - VieGrand App';
+        $mail->Body = generatePasswordResetEmailHTML($userName, $otp);
+        $mail->AltBody = generatePasswordResetEmailText($userName, $otp);
+        
+        // Send email
+        $mail->send();
+        error_log("✅ Email sent successfully to: $userEmail");
+        return true;
+        
+    } catch (Exception $e) {
+        error_log("❌ Email sending failed: " . $mail->ErrorInfo);
+        return false;
     }
-    
-    return $emailSent;
-}
-
-/**
- * Send email via SMTP using cURL
- */
-function sendEmailViaSMTP($to, $subject, $htmlContent, $headers, $smtpHost, $smtpPort, $username, $password) {
-    // For now, return false to use fallback mail() function
-    // In production, you would implement proper SMTP sending here
-    return false;
 }
 
 /**
