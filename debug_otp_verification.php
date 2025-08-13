@@ -4,7 +4,7 @@ require_once 'config.php';
 echo "<h1>Debug OTP Verification Process</h1>";
 
 // Test data - replace with actual values from your app
-$testEmail = 'pmkkhoaminh@gmail.com';
+$testEmail = 'phamquochuy131106@gmail.com';
 $testOtp = '123456'; // Replace with actual OTP from database
 
 echo "<h2>1. Testing Database Connection</h2>";
