@@ -3,6 +3,15 @@ require_once 'config.php';
 
 echo "<h1>OTP Setup Test</h1>";
 
+// Get database connection
+try {
+    $pdo = getDatabaseConnection();
+    echo "✅ Database connection successful<br>";
+} catch (Exception $e) {
+    echo "❌ Database connection failed: " . $e->getMessage() . "<br>";
+    exit();
+}
+
 // Test 1: Check if OTP table exists
 echo "<h2>1. Checking OTP Table</h2>";
 try {
