@@ -11,8 +11,15 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 try {
+    // Debug: Log the incoming request
+    error_log("🔍 verify_otp_and_change_password.php - Request received");
+    error_log("🔍 Request method: " . $_SERVER['REQUEST_METHOD']);
+    error_log("🔍 Content-Type: " . ($_SERVER['CONTENT_TYPE'] ?? 'not set'));
+    
     // Get JSON input
     $input = file_get_contents('php://input');
+    error_log("🔍 Raw input: " . $input);
+    
     $data = json_decode($input, true);
     
     // Validate JSON
@@ -25,6 +32,9 @@ try {
     $email = isset($data['email']) ? sanitizeInput($data['email']) : null;
     $otp = isset($data['otp']) ? sanitizeInput($data['otp']) : null;
     $newPassword = isset($data['newPassword']) ? $data['newPassword'] : null;
+    
+    // Debug: Log extracted fields
+    error_log("🔍 Extracted fields - Email: $email, OTP: $otp, Password length: " . strlen($newPassword));
     
     if (!$email || !$otp || !$newPassword) {
         sendErrorResponse('Email, OTP, and new password are required', 'Bad request', 400);
@@ -64,9 +74,12 @@ try {
     $otpRecord = $verifyOtpStmt->fetch(PDO::FETCH_ASSOC);
     
     if (!$otpRecord) {
+        error_log("❌ OTP verification failed - Email: $email, OTP: $otp");
         sendErrorResponse('Invalid or expired OTP', 'Unauthorized', 401);
         exit;
     }
+    
+    error_log("✅ OTP verification successful - Email: $email, OTP: $otp");
     
     // Hash the new password
     $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
