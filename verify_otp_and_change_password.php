@@ -86,15 +86,31 @@ try {
         exit;
     }
     
-    // Verify OTP
-    $verifyOtpSql = "SELECT * FROM password_reset_otp WHERE user_id = ? AND otp = ? AND expires_at > NOW() AND used = 0 ORDER BY created_at DESC LIMIT 1";
+    // Simple OTP verification - just check if OTP exists and matches
+    $verifyOtpSql = "SELECT * FROM password_reset_otp WHERE user_id = ? AND otp = ? LIMIT 1";
     $verifyOtpStmt = $conn->prepare($verifyOtpSql);
     $verifyOtpStmt->execute([$user['userId'], $otp]);
     $otpRecord = $verifyOtpStmt->fetch(PDO::FETCH_ASSOC);
     
     if (!$otpRecord) {
-        error_log("❌ OTP verification failed - Email: $email, OTP: $otp");
-        sendErrorResponse('Invalid or expired OTP', 'Unauthorized', 401);
+        error_log("❌ OTP not found - Email: $email, OTP: $otp");
+        sendErrorResponse('OTP không tồn tại', 'Unauthorized', 401);
+        exit;
+    }
+    
+    // Check if OTP is already used
+    if ($otpRecord['used'] == 1) {
+        error_log("❌ OTP already used - Email: $email, OTP: $otp");
+        sendErrorResponse('OTP đã được sử dụng', 'Unauthorized', 401);
+        exit;
+    }
+    
+    // Check if OTP is expired
+    $now = new DateTime();
+    $expires = new DateTime($otpRecord['expires_at']);
+    if ($now > $expires) {
+        error_log("❌ OTP expired - Email: $email, OTP: $otp, Expired: {$otpRecord['expires_at']}");
+        sendErrorResponse('OTP đã hết hạn', 'Unauthorized', 401);
         exit;
     }
     
@@ -102,6 +118,7 @@ try {
     
     // Hash the new password
     $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+    error_log("✅ Password hashed successfully for user: {$user['userId']}");
     
     // Update user password
     $updatePasswordSql = "UPDATE user SET password = ?, updated_at = NOW() WHERE userId = ?";
@@ -109,9 +126,12 @@ try {
     $updatePasswordResult = $updatePasswordStmt->execute([$hashedPassword, $user['userId']]);
     
     if (!$updatePasswordResult) {
-        sendErrorResponse('Failed to update password', 'Internal server error', 500);
+        error_log("❌ Failed to update password for user: {$user['userId']}");
+        sendErrorResponse('Không thể cập nhật mật khẩu', 'Internal server error', 500);
         exit;
     }
+    
+    error_log("✅ Password updated successfully for user: {$user['userId']}");
     
     // Mark OTP as used
     $markOtpUsedSql = "UPDATE password_reset_otp SET used = 1, used_at = NOW() WHERE id = ?";
