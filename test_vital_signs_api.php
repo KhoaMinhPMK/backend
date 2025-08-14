@@ -40,12 +40,12 @@ try {
     $sample_data = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Test 4: Check if there are any users with private keys
-    $stmt = $pdo->query("SELECT userId, private_key_nguoi_nhan FROM user WHERE private_key_nguoi_nhan IS NOT NULL LIMIT 3");
+    $stmt = $pdo->query("SELECT userId, private_key FROM user WHERE private_key IS NOT NULL LIMIT 3");
     $users_with_keys = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Test 5: Prepare test data
     $test_data = [
-        'private_key' => $users_with_keys[0]['private_key_nguoi_nhan'] ?? 'test_key_123',
+        'private_key' => $users_with_keys[0]['private_key'] ?? 'test_key_123',
         'blood_pressure_systolic' => 120,
         'blood_pressure_diastolic' => 80,
         'heart_rate' => 72
