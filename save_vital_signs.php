@@ -21,10 +21,15 @@ try {
     
     // Validate required fields
     $required_fields = ['private_key', 'blood_pressure_systolic', 'blood_pressure_diastolic', 'heart_rate'];
-    $validation_result = validateRequiredFields($input, $required_fields);
+    $missing_fields = [];
+    foreach ($required_fields as $field) {
+        if (!isset($input[$field]) || empty(trim($input[$field]))) {
+            $missing_fields[] = $field;
+        }
+    }
     
-    if (!$validation_result['valid']) {
-        sendErrorResponse('Missing required fields', $validation_result['missing_fields'], 400);
+    if (!empty($missing_fields)) {
+        sendErrorResponse('Missing required fields', 'Missing fields: ' . implode(', ', $missing_fields), 400);
         exit;
     }
     

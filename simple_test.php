@@ -1,48 +1,60 @@
 <?php
-// File test đơn giản cho emergency contact API
-// Chạy: php simple_test.php
+// Simple test script to check vital signs functionality
+header('Content-Type: application/json');
 
-echo "=== Simple Emergency Contact Test ===\n\n";
-
-// Test 1: Lưu số khẩn cấp
-echo "1. Testing SAVE API...\n";
-
-$data = [
-    'user_email' => 'test@example.com',
-    'emergency_number' => '0902716951',
-    'contact_name' => 'Số khẩn cấp test'
-];
-
-$ch = curl_init();
-curl_setopt($ch, CURLOPT_URL, 'https://viegrand.site/backend/save_emergency_contact.php');
-curl_setopt($ch, CURLOPT_POST, true);
-curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-
-$response = curl_exec($ch);
-$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-curl_close($ch);
-
-echo "Status: $httpCode\n";
-echo "Response: $response\n\n";
-
-// Test 2: Lấy số khẩn cấp
-echo "2. Testing GET API...\n";
-
-$email = urlencode('test@example.com');
-$ch = curl_init();
-curl_setopt($ch, CURLOPT_URL, "https://viegrand.site/backend/get_emergency_contact.php?email=$email");
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-
-$response = curl_exec($ch);
-$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-curl_close($ch);
-
-echo "Status: $httpCode\n";
-echo "Response: $response\n\n";
-
-echo "=== Test Complete ===\n";
+try {
+    // Basic database connection test
+    $pdo = new PDO("mysql:host=localhost;dbname=viegrand;charset=utf8mb4", "root", "");
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    
+    $result = [
+        'database_connection' => 'success',
+        'tests' => []
+    ];
+    
+    // Test 1: Check if vital_signs table exists
+    $stmt = $pdo->query("SHOW TABLES LIKE 'vital_signs'");
+    $tableExists = $stmt->rowCount() > 0;
+    $result['tests']['table_exists'] = $tableExists;
+    
+    if ($tableExists) {
+        // Test 2: Check table structure
+        $stmt = $pdo->query("DESCRIBE vital_signs");
+        $columns = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $result['tests']['table_structure'] = $columns;
+        
+        // Test 3: Check for sample data
+        $stmt = $pdo->query("SELECT COUNT(*) as count FROM vital_signs");
+        $count = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
+        $result['tests']['data_count'] = $count;
+    }
+    
+    // Test 4: Check if user table has private_key_nguoi_nhan field
+    $stmt = $pdo->query("SHOW TABLES LIKE 'user'");
+    $userTableExists = $stmt->rowCount() > 0;
+    $result['tests']['user_table_exists'] = $userTableExists;
+    
+    if ($userTableExists) {
+        $stmt = $pdo->query("DESCRIBE user");
+        $userColumns = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        $hasPrivateKey = in_array('private_key_nguoi_nhan', $userColumns);
+        $result['tests']['has_private_key_field'] = $hasPrivateKey;
+        
+        if ($hasPrivateKey) {
+            // Test 5: Check for users with private keys
+            $stmt = $pdo->query("SELECT COUNT(*) as count FROM user WHERE private_key_nguoi_nhan IS NOT NULL");
+            $userCount = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
+            $result['tests']['users_with_private_keys'] = $userCount;
+        }
+    }
+    
+    echo json_encode($result, JSON_PRETTY_PRINT);
+    
+} catch (Exception $e) {
+    echo json_encode([
+        'error' => $e->getMessage(),
+        'file' => $e->getFile(),
+        'line' => $e->getLine()
+    ], JSON_PRETTY_PRINT);
+}
 ?> 

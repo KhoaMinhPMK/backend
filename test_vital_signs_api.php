@@ -19,8 +19,16 @@ try {
     $table_exists = $stmt->rowCount() > 0;
     
     if (!$table_exists) {
-        sendErrorResponse('Table not found', 'vital_signs table does not exist in the database', 404);
-        exit;
+        // Create the table if it doesn't exist
+        $createTableSQL = "CREATE TABLE `vital_signs` (
+            `private_key` varchar(255) DEFAULT NULL,
+            `blood_pressure_systolic` int(11) DEFAULT NULL COMMENT 'Huyết áp tâm thu (mmHg)',
+            `blood_pressure_diastolic` int(11) DEFAULT NULL COMMENT 'Huyết áp tâm trương (mmHg)',
+            `heart_rate` int(11) DEFAULT NULL COMMENT 'Nhịp tim (bpm)'
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+        
+        $pdo->exec($createTableSQL);
+        $table_exists = true;
     }
     
     // Test 2: Check table structure
@@ -35,7 +43,7 @@ try {
     $stmt = $pdo->query("SELECT userId, private_key_nguoi_nhan FROM user WHERE private_key_nguoi_nhan IS NOT NULL LIMIT 3");
     $users_with_keys = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Test 5: Simulate a POST request to save_vital_signs.php
+    // Test 5: Prepare test data
     $test_data = [
         'private_key' => $users_with_keys[0]['private_key_nguoi_nhan'] ?? 'test_key_123',
         'blood_pressure_systolic' => 120,
@@ -60,7 +68,7 @@ try {
         'code' => $e->getCode()
     ]);
     
-    sendErrorResponse('Database error', 'An error occurred while testing vital signs API', 500);
+    sendErrorResponse('Database error', 'Database error: ' . $e->getMessage(), 500);
     
 } catch (Exception $e) {
     logError('Unexpected error in test_vital_signs_api', [
@@ -68,6 +76,6 @@ try {
         'code' => $e->getCode()
     ]);
     
-    sendErrorResponse('Server error', 'An unexpected error occurred during testing', 500);
+    sendErrorResponse('Server error', 'Server error: ' . $e->getMessage(), 500);
 }
 ?> 

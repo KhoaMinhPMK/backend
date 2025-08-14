@@ -94,6 +94,7 @@
         
         <button onclick="testAPI()">Test Save Vital Signs</button>
         <button onclick="testTable()">Test Table Structure</button>
+        <button onclick="debugAPI()">Debug API</button>
         <button onclick="clearResult()">Clear Result</button>
         
         <div id="result" class="result" style="display: none;"></div>
@@ -161,6 +162,17 @@
             resultDiv.textContent = message;
             resultDiv.className = `result ${type}`;
             resultDiv.style.display = 'block';
+        }
+        
+        async function debugAPI() {
+            try {
+                const response = await fetch(API_BASE_URL + 'debug_vital_signs.php');
+                const result = await response.text();
+                
+                showResult(`🔍 Debug Result:\n\n${result}`, 'info');
+            } catch (error) {
+                showResult(`❌ Debug Error: ${error.message}`, 'error');
+            }
         }
         
         function clearResult() {
