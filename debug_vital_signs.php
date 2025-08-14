@@ -84,7 +84,7 @@ try {
     
     // Check for users with private keys
     echo "<h3>Users with Private Keys:</h3>";
-    $stmt = $pdo->query("SELECT userId, private_key_nguoi_nhan FROM user WHERE private_key_nguoi_nhan IS NOT NULL LIMIT 5");
+    $stmt = $pdo->query("SELECT userId, private_key FROM user WHERE private_key IS NOT NULL LIMIT 5");
     $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     if (count($users) > 0) {
@@ -93,7 +93,7 @@ try {
         foreach ($users as $user) {
             echo "<tr>";
             echo "<td>" . $user['userId'] . "</td>";
-            echo "<td>" . htmlspecialchars($user['private_key_nguoi_nhan']) . "</td>";
+            echo "<td>" . htmlspecialchars($user['private_key']) . "</td>";
             echo "</tr>";
         }
         echo "</table>";
