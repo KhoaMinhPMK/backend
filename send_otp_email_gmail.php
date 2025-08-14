@@ -100,7 +100,7 @@ function sendOTPEmailViaGmail($userEmail, $userName, $otp) {
     // ⚠️ IMPORTANT: Replace these with your actual Gmail credentials
     // $gmailUsername = process.env.VIEGRAND_EMAIL; // Replace with your Gmail
     // $gmailPassword = process.env.VIEGRAND_PASSWORD; // Replace with your Gmail App Password
-    $gmailUsername = 'viegrandapp@gmail.com'; // Replace with your Gmail
+    $gmailUsername = 'viegrand329@gmail.com'; // Replace with your Gmail
     $gmailPassword = 'udfo ghsn nomp yblz'; // Replace with your Gmail App Password
     try {
         $mail = new PHPMailer(true);
