@@ -56,7 +56,7 @@ try {
     
     // Get vital signs data for the user within the specified period
     $stmt = $pdo->prepare("
-        SELECT id, private_key, blood_pressure_systolic, blood_pressure_diastolic, heart_rate, created_at
+        SELECT private_key, blood_pressure_systolic, blood_pressure_diastolic, heart_rate, created_at
         FROM vital_signs 
         WHERE private_key = ? AND created_at >= ?
         ORDER BY created_at ASC

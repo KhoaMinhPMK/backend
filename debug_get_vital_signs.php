@@ -83,7 +83,7 @@ try {
         
         // Test the query
         $stmt = $pdo->prepare("
-            SELECT id, private_key, blood_pressure_systolic, blood_pressure_diastolic, heart_rate, created_at
+            SELECT private_key, blood_pressure_systolic, blood_pressure_diastolic, heart_rate, created_at
             FROM vital_signs 
             WHERE private_key = ? AND created_at >= ?
             ORDER BY created_at ASC
@@ -96,10 +96,9 @@ try {
         
         if (count($vital_signs) > 0) {
             echo "<table border='1'>";
-            echo "<tr><th>ID</th><th>Private Key</th><th>Systolic</th><th>Diastolic</th><th>Heart Rate</th><th>Created At</th></tr>";
+            echo "<tr><th>Private Key</th><th>Systolic</th><th>Diastolic</th><th>Heart Rate</th><th>Created At</th></tr>";
             foreach ($vital_signs as $record) {
                 echo "<tr>";
-                echo "<td>" . $record['id'] . "</td>";
                 echo "<td>" . htmlspecialchars($record['private_key']) . "</td>";
                 echo "<td>" . $record['blood_pressure_systolic'] . "</td>";
                 echo "<td>" . $record['blood_pressure_diastolic'] . "</td>";
@@ -123,10 +122,9 @@ try {
     
     if (count($allRecords) > 0) {
         echo "<table border='1'>";
-        echo "<tr><th>ID</th><th>Private Key</th><th>Systolic</th><th>Diastolic</th><th>Heart Rate</th><th>Created At</th></tr>";
+        echo "<tr><th>Private Key</th><th>Systolic</th><th>Diastolic</th><th>Heart Rate</th><th>Created At</th></tr>";
         foreach ($allRecords as $record) {
             echo "<tr>";
-            echo "<td>" . $record['id'] . "</td>";
             echo "<td>" . htmlspecialchars($record['private_key']) . "</td>";
             echo "<td>" . $record['blood_pressure_systolic'] . "</td>";
             echo "<td>" . $record['blood_pressure_diastolic'] . "</td>";
