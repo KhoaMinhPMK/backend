@@ -32,7 +32,7 @@ try {
     $pdo = getDatabaseConnection();
     
     // Check if user exists with this private key
-    $stmt = $pdo->prepare("SELECT userId FROM user WHERE private_key_nguoi_nhan = ?");
+    $stmt = $pdo->prepare("SELECT userId FROM user WHERE private_key = ?");
     $stmt->execute([$private_key]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     
