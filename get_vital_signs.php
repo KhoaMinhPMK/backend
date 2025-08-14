@@ -32,7 +32,7 @@ try {
     $pdo = getDatabaseConnection();
     
     // Check if user exists with this private key
-    $stmt = $pdo->prepare("SELECT userId FROM user WHERE private_key = ?");
+    $stmt = $pdo->prepare("SELECT userId FROM user WHERE private_key_nguoi_nhan = ?");
     $stmt->execute([$private_key]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     
@@ -52,7 +52,7 @@ try {
     ];
     
     $days_back = $period_map[$period];
-    $start_date = $now->modify("-{$days_back} days")->format('Y-m-d H:i:s');
+    $start_date = (clone $now)->modify("-{$days_back} days")->format('Y-m-d H:i:s');
     
     // Get vital signs data for the user within the specified period
     $stmt = $pdo->prepare("
@@ -84,18 +84,20 @@ try {
     logError('Database error in get_vital_signs', [
         'error' => $e->getMessage(),
         'code' => $e->getCode(),
-        'private_key' => $private_key ?? 'Not provided'
+        'private_key' => $private_key ?? 'Not provided',
+        'trace' => $e->getTraceAsString()
     ]);
     
-    sendErrorResponse('Database error', 'An error occurred while retrieving vital signs data', 500);
+    sendErrorResponse('Database error', 'Database error: ' . $e->getMessage(), 500);
     
 } catch (Exception $e) {
     logError('Unexpected error in get_vital_signs', [
         'error' => $e->getMessage(),
         'code' => $e->getCode(),
-        'private_key' => $private_key ?? 'Not provided'
+        'private_key' => $private_key ?? 'Not provided',
+        'trace' => $e->getTraceAsString()
     ]);
     
-    sendErrorResponse('Server error', 'An unexpected error occurred', 500);
+    sendErrorResponse('Server error', 'Server error: ' . $e->getMessage(), 500);
 }
 ?> 
