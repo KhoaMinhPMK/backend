@@ -98,9 +98,10 @@ try {
 function sendOTPEmailViaGmail($userEmail, $userName, $otp) {
     // Gmail SMTP Configuration
     // ⚠️ IMPORTANT: Replace these with your actual Gmail credentials
-    $gmailUsername = process.env.VIEGRAND_EMAIL; // Replace with your Gmail
-    $gmailPassword = process.env.VIEGRAND_PASSWORD; // Replace with your Gmail App Password
-    
+    // $gmailUsername = process.env.VIEGRAND_EMAIL; // Replace with your Gmail
+    // $gmailPassword = process.env.VIEGRAND_PASSWORD; // Replace with your Gmail App Password
+    $gmailUsername = 'viegrandapp@gmail.com'; // Replace with your Gmail
+    $gmailPassword = 'udfo ghsn nomp yblz'; // Replace with your Gmail App Password
     try {
         $mail = new PHPMailer(true);
         
@@ -115,7 +116,7 @@ function sendOTPEmailViaGmail($userEmail, $userName, $otp) {
         $mail->CharSet = 'UTF-8';
         
         // Recipients
-        $mail->setFrom($gmailUsername, process.env.VIEGRAND_APP_NAME);
+        $mail->setFrom($gmailUsername, 'VieGrand App');
         $mail->addAddress($userEmail, $userName);
         $mail->addReplyTo('support@viegrandapp.com', 'VieGrand Support');
         
