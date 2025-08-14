@@ -35,8 +35,8 @@ try {
     $stmt = $pdo->query("DESCRIBE vital_signs");
     $columns = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Test 3: Get sample data (if any)
-    $stmt = $pdo->query("SELECT * FROM vital_signs LIMIT 5");
+    // Test 3: Get sample data (if any) - show latest records
+    $stmt = $pdo->query("SELECT * FROM vital_signs ORDER BY id DESC LIMIT 5");
     $sample_data = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Test 4: Check if there are any users with private keys

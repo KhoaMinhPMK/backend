@@ -68,82 +68,39 @@ try {
         exit;
     }
     
-    // Check if vital signs record already exists for this user
-    $stmt = $pdo->prepare("SELECT private_key FROM vital_signs WHERE private_key = ?");
-    $stmt->execute([$private_key]);
-    $existing_record = $stmt->fetch(PDO::FETCH_ASSOC);
+    // Always insert a new record for tracking health data over time
+    $stmt = $pdo->prepare("
+        INSERT INTO vital_signs (private_key, blood_pressure_systolic, blood_pressure_diastolic, heart_rate)
+        VALUES (?, ?, ?, ?)
+    ");
     
-    if ($existing_record) {
-        // Update existing record
-        $stmt = $pdo->prepare("
-            UPDATE vital_signs 
-            SET blood_pressure_systolic = ?, 
-                blood_pressure_diastolic = ?, 
-                heart_rate = ?
-            WHERE private_key = ?
-        ");
-        
-        $result = $stmt->execute([
-            $blood_pressure_systolic,
-            $blood_pressure_diastolic,
-            $heart_rate,
-            $private_key
+    $result = $stmt->execute([
+        $private_key,
+        $blood_pressure_systolic,
+        $blood_pressure_diastolic,
+        $heart_rate
+    ]);
+    
+    if ($result) {
+        // Log the insertion
+        logError('Vital signs recorded', [
+            'private_key' => $private_key,
+            'systolic' => $blood_pressure_systolic,
+            'diastolic' => $blood_pressure_diastolic,
+            'heart_rate' => $heart_rate,
+            'action' => 'insert_new_record'
         ]);
         
-        if ($result) {
-            // Log the update
-            logError('Vital signs updated', [
-                'private_key' => $private_key,
-                'systolic' => $blood_pressure_systolic,
-                'diastolic' => $blood_pressure_diastolic,
-                'heart_rate' => $heart_rate,
-                'action' => 'update'
-            ]);
-            
-            sendSuccessResponse([
-                'action' => 'updated',
-                'private_key' => $private_key,
-                'blood_pressure_systolic' => $blood_pressure_systolic,
-                'blood_pressure_diastolic' => $blood_pressure_diastolic,
-                'heart_rate' => $heart_rate
-            ], 'Vital signs updated successfully');
-        } else {
-            sendErrorResponse('Database error', 'Failed to update vital signs record', 500);
-        }
+        sendSuccessResponse([
+            'action' => 'recorded',
+            'private_key' => $private_key,
+            'blood_pressure_systolic' => $blood_pressure_systolic,
+            'blood_pressure_diastolic' => $blood_pressure_diastolic,
+            'heart_rate' => $heart_rate,
+            'timestamp' => date('Y-m-d H:i:s')
+        ], 'Vital signs recorded successfully');
     } else {
-        // Insert new record
-        $stmt = $pdo->prepare("
-            INSERT INTO vital_signs (private_key, blood_pressure_systolic, blood_pressure_diastolic, heart_rate)
-            VALUES (?, ?, ?, ?)
-        ");
-        
-        $result = $stmt->execute([
-            $private_key,
-            $blood_pressure_systolic,
-            $blood_pressure_diastolic,
-            $heart_rate
-        ]);
-        
-        if ($result) {
-            // Log the insertion
-            logError('Vital signs created', [
-                'private_key' => $private_key,
-                'systolic' => $blood_pressure_systolic,
-                'diastolic' => $blood_pressure_diastolic,
-                'heart_rate' => $heart_rate,
-                'action' => 'insert'
-            ]);
-            
-            sendSuccessResponse([
-                'action' => 'created',
-                'private_key' => $private_key,
-                'blood_pressure_systolic' => $blood_pressure_systolic,
-                'blood_pressure_diastolic' => $blood_pressure_diastolic,
-                'heart_rate' => $heart_rate
-            ], 'Vital signs saved successfully');
-        } else {
-            sendErrorResponse('Database error', 'Failed to create vital signs record', 500);
-        }
+        sendErrorResponse('Database error', 'Failed to record vital signs', 500);
     }
     
 } catch (PDOException $e) {

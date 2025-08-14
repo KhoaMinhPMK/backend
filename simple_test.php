@@ -27,6 +27,11 @@ try {
         $stmt = $pdo->query("SELECT COUNT(*) as count FROM vital_signs");
         $count = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
         $result['tests']['data_count'] = $count;
+        
+        // Test 3.1: Get latest records
+        $stmt = $pdo->query("SELECT * FROM vital_signs ORDER BY id DESC LIMIT 3");
+        $latest_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $result['tests']['latest_records'] = $latest_records;
     }
     
     // Test 4: Check if user table has private_key_nguoi_nhan field

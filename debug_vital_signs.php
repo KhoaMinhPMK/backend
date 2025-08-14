@@ -44,9 +44,9 @@ try {
         }
         echo "</table>";
         
-        // Show sample data
-        echo "<h3>Sample Data:</h3>";
-        $stmt = $pdo->query("SELECT * FROM vital_signs LIMIT 5");
+        // Show sample data - latest records
+        echo "<h3>Latest Vital Signs Records:</h3>";
+        $stmt = $pdo->query("SELECT * FROM vital_signs ORDER BY id DESC LIMIT 5");
         $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         if (count($data) > 0) {
