@@ -98,14 +98,12 @@ try {
 function sendOTPEmailViaGmail($userEmail, $userName, $otp) {
     // Gmail SMTP Configuration
     // ⚠️ IMPORTANT: Replace these with your actual Gmail credentials
-    // $gmailUsername = process.env.VIEGRAND_EMAIL; // Replace with your Gmail
-    // $gmailPassword = process.env.VIEGRAND_PASSWORD; // Replace with your Gmail App Password
-    $gmailUsername = 'viegrand329@gmail.com'; // Replace with your Gmail
-    $gmailPassword = 'udfo ghsn nomp yblz'; // Replace with your Gmail App Password
+    $gmailUsername = VIEGRAND_EMAIL; // Replace with your Gmail
+    $gmailPassword = VIEGRAND_APP_PASSWORD; // Replace with your Gmail App Password
     try {
         $mail = new PHPMailer(true);
         
-        // Server settings
+        // Server settings  
         $mail->isSMTP();
         $mail->Host = 'smtp.gmail.com';
         $mail->SMTPAuth = true;

@@ -5,6 +5,9 @@ define('DB_NAME', 'viegrand');
 define('DB_USER', 'root');
 define('DB_PASS', '');
 
+define('VIEGRAND_EMAIL', 'viegrand329@gmail.com');
+define('VIEGRAND_APP_PASSWORD', 'udfo ghsn nomp yblz');
+
 // API Configuration
 define('API_VERSION', 'v1');
 define('CORS_ORIGINS', ['*']); // Cho phép tất cả origins, có thể thay đổi theo domain cụ thể
