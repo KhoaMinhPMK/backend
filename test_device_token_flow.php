@@ -4,7 +4,7 @@ require_once 'config.php';
 echo "🧪 Testing Device Token Flow...\n\n";
 
 // Test configuration
-$testEmail = 'phamquochuy131106@gmail.com'; // Replace with a real user email
+$testEmail = process.env.VIEGRAND_EMAIL; // Replace with a real user email
 $testDeviceToken = 'test_device_token_' . time(); // Simulated device token
 
 echo "📧 Test Email: $testEmail\n";

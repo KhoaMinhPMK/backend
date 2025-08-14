@@ -3,7 +3,7 @@ require_once 'config.php';
 
 echo "<h1>Find Current OTP for User</h1>";
 
-$userEmail = 'phamquochuy131106@gmail.com';
+$userEmail = process.env.VIEGRAND_EMAIL;
 
 echo "<h2>Looking for OTP for: $userEmail</h2>";
 

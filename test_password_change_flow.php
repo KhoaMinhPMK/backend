@@ -3,7 +3,7 @@ require_once 'config.php';
 
 echo "<h1>Test Password Change Flow</h1>";
 
-$userEmail = 'phamquochuy131106@gmail.com';
+$userEmail = process.env.VIEGRAND_EMAIL;
 $testOtp = '123456'; // Replace with actual OTP
 $newPassword = 'newpassword123';
 

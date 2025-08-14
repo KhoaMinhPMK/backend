@@ -75,14 +75,14 @@ try {
     $mail->isSMTP();
     $mail->Host = 'smtp.gmail.com';
     $mail->SMTPAuth = true;
-    $mail->Username = 'phamquochuy131106@gmail.com';
-    $mail->Password = 'qosy fhma etey vnha';
+    $mail->Username = process.env.VIEGRAND_EMAIL;
+    $mail->Password = process.env.VIEGRAND_PASSWORD;
     $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
     $mail->Port = 587;
     $mail->CharSet = 'UTF-8';
     
     // Recipients
-    $mail->setFrom('phamquochuy131106@gmail.com', 'VieGrand App');
+    $mail->setFrom(process.env.VIEGRAND_EMAIL, process.env.VIEGRAND_APP_NAME);
     $mail->addAddress($testEmail, $testUserName);
     $mail->addReplyTo('support@viegrandapp.com', 'VieGrand Support');
     

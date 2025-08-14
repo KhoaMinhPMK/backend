@@ -3,7 +3,7 @@ require_once 'config.php';
 
 echo "<h1>Quick OTP Check</h1>";
 
-$userEmail = 'phamquochuy131106@gmail.com';
+$userEmail = process.env.VIEGRAND_EMAIL;
 $otpToCheck = '361027';
 
 echo "<h2>Checking OTP: $otpToCheck</h2>";

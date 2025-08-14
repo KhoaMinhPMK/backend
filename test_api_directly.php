@@ -5,7 +5,7 @@ echo "<h1>Test API Endpoint Directly</h1>";
 
 // Test data
 $testData = [
-    'email' => 'phamquochuy131106@gmail.com',
+    'email' => process.env.VIEGRAND_EMAIL,
     'otp' => '361027',
     'newPassword' => 'newpassword123'
 ];

@@ -4,7 +4,7 @@ require_once 'config.php';
 echo "<h1>Simple OTP Test</h1>";
 
 // Test data
-$email = 'phamquochuy131106@gmail.com';
+$email = process.env.VIEGRAND_EMAIL;
 $otp = '361027'; // Replace with actual OTP
 $newPassword = 'newpassword123';
 
