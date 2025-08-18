@@ -44,8 +44,8 @@ try {
     // Get database connection
     $pdo = getDatabaseConnection();
 
-    // Check if user exists
-    $userStmt = $pdo->prepare("SELECT userId, userName FROM user WHERE email = ?");
+    // Check if user exists and get private key
+    $userStmt = $pdo->prepare("SELECT userId, userName, private_key FROM user WHERE email = ?");
     $userStmt->execute([$email]);
     $user = $userStmt->fetch();
 
@@ -53,50 +53,74 @@ try {
         sendErrorResponse('User not found', 'No user found with this email address');
     }
 
+    if (empty($user['private_key'])) {
+        sendErrorResponse('Private key not found', 'User does not have a private key');
+    }
+
+    $privateKey = $user['private_key'];
+    $userId = $user['userId'];
+
     // Create upload directory if it doesn't exist
     $uploadDir = 'uploads/face_data/';
     if (!file_exists($uploadDir)) {
         mkdir($uploadDir, 0755, true);
     }
 
-    // Generate unique filename
+    // Generate filename using private key
     $timestamp = date('Y-m-d_H-i-s');
-    $userId = $user['userId'];
     $fileExtension = pathinfo($videoFile['name'], PATHINFO_EXTENSION);
-    $filename = "face_data_{$userId}_{$timestamp}.{$fileExtension}";
+    $filename = "face_data_{$privateKey}.{$fileExtension}";
     $filepath = $uploadDir . $filename;
+
+    // Check if file already exists
+    $fileExists = file_exists($filepath);
+    $originalSize = $fileExists ? filesize($filepath) : 0;
 
     // Move uploaded file
     if (!move_uploaded_file($videoFile['tmp_name'], $filepath)) {
         sendErrorResponse('Failed to save video', 'Could not save the uploaded video file');
     }
 
+    // Get final file size
+    $finalSize = filesize($filepath);
+
     // Save face data record to database
     $insertStmt = $pdo->prepare("
-        INSERT INTO face_data (user_id, email, video_path, file_size, upload_date, status) 
-        VALUES (?, ?, ?, ?, NOW(), 'uploaded')
+        INSERT INTO face_data (user_id, email, video_path, file_size, upload_date, status, private_key, is_appended) 
+        VALUES (?, ?, ?, ?, NOW(), 'uploaded', ?, ?)
     ");
     
+    $isAppended = $fileExists ? 1 : 0;
     $insertStmt->execute([
         $userId,
         $email,
         $filepath,
-        $videoFile['size']
+        $finalSize,
+        $privateKey,
+        $isAppended
     ]);
 
     $faceDataId = $pdo->lastInsertId();
 
     // Log the upload
-    error_log("Face data uploaded - User: {$user['userName']} ({$email}), File: {$filename}, Size: {$videoFile['size']} bytes");
+    $logMessage = $fileExists 
+        ? "Face data appended - User: {$user['userName']} ({$email}), File: {$filename}, Original size: {$originalSize}, Final size: {$finalSize} bytes"
+        : "Face data uploaded - User: {$user['userName']} ({$email}), File: {$filename}, Size: {$finalSize} bytes";
+    
+    error_log($logMessage);
 
     // Return success response
     sendSuccessResponse([
         'face_data_id' => $faceDataId,
         'filename' => $filename,
-        'file_size' => $videoFile['size'],
+        'private_key' => $privateKey,
+        'file_size' => $finalSize,
         'upload_date' => date('Y-m-d H:i:s'),
-        'user_name' => $user['userName']
-    ], 'Face data uploaded successfully');
+        'user_name' => $user['userName'],
+        'is_appended' => $isAppended,
+        'original_size' => $originalSize,
+        'message' => $fileExists ? 'Face data appended successfully' : 'Face data uploaded successfully'
+    ], $fileExists ? 'Face data appended successfully' : 'Face data uploaded successfully');
 
 } catch (Exception $e) {
     error_log("Face data upload error: " . $e->getMessage());
