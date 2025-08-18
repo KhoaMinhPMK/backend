@@ -76,9 +76,75 @@ try {
     $fileExists = file_exists($filepath);
     $originalSize = $fileExists ? filesize($filepath) : 0;
 
-    // Move uploaded file
-    if (!move_uploaded_file($videoFile['tmp_name'], $filepath)) {
-        sendErrorResponse('Failed to save video', 'Could not save the uploaded video file');
+    // Handle file upload - append if exists, create new if not
+    if ($fileExists) {
+        // Check if FFmpeg is available
+        $ffmpegAvailable = false;
+        $ffmpegOutput = [];
+        exec('ffmpeg -version 2>&1', $ffmpegOutput, $ffmpegReturnCode);
+        $ffmpegAvailable = ($ffmpegReturnCode === 0);
+        
+        if ($ffmpegAvailable) {
+            // Use FFmpeg for proper video concatenation
+            $tempNewFile = $videoFile['tmp_name'];
+            
+            // Create a temporary file list for FFmpeg
+            $tempListFile = tempnam(sys_get_temp_dir(), 'video_list_');
+            $listContent = "file '" . realpath($filepath) . "'\n";
+            $listContent .= "file '" . realpath($tempNewFile) . "'\n";
+            file_put_contents($tempListFile, $listContent);
+            
+            // Create temporary output file
+            $tempOutputFile = tempnam(sys_get_temp_dir(), 'combined_video_') . '.' . $fileExtension;
+            
+            // Use FFmpeg to concatenate videos
+            $ffmpegCommand = "ffmpeg -f concat -safe 0 -i '{$tempListFile}' -c copy '{$tempOutputFile}' 2>&1";
+            $output = [];
+            $returnCode = 0;
+            
+            exec($ffmpegCommand, $output, $returnCode);
+            
+            // Clean up temporary list file
+            unlink($tempListFile);
+            
+            if ($returnCode !== 0) {
+                error_log("FFmpeg concatenation failed: " . implode("\n", $output));
+                sendErrorResponse('Failed to append video', 'Video concatenation failed: ' . implode("\n", $output));
+            }
+            
+            // Replace original file with combined file
+            if (!rename($tempOutputFile, $filepath)) {
+                sendErrorResponse('Failed to save combined video', 'Could not save the combined video file');
+            }
+            
+            // Log the append operation
+            $newSize = filesize($filepath);
+            error_log("Video content appended using FFmpeg - Original size: {$originalSize}, New size: {$newSize}");
+            
+        } else {
+            // Fallback: Create a new file with timestamp to preserve both videos
+            $timestamp = date('Y-m-d_H-i-s');
+            $newFilename = "face_data_{$privateKey}_{$timestamp}.{$fileExtension}";
+            $newFilepath = $uploadDir . $newFilename;
+            
+            // Move uploaded file to new location
+            if (!move_uploaded_file($videoFile['tmp_name'], $newFilepath)) {
+                sendErrorResponse('Failed to save video', 'Could not save the uploaded video file');
+            }
+            
+            // Update filepath to new file
+            $filepath = $newFilepath;
+            $filename = $newFilename;
+            
+            // Log the fallback operation
+            error_log("FFmpeg not available - Created new file: {$newFilename} (FFmpeg concatenation not possible)");
+        }
+        
+    } else {
+        // Move uploaded file for new file
+        if (!move_uploaded_file($videoFile['tmp_name'], $filepath)) {
+            sendErrorResponse('Failed to save video', 'Could not save the uploaded video file');
+        }
     }
 
     // Get final file size
