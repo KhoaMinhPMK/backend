@@ -38,9 +38,10 @@ try {
     
     $elderlyPrivateKey = $input['elderly_private_key'] ?? null;
     $cameraUrl = $input['camera_url'] ?? null;
+    $room = $input['room'] ?? null;
     $relativeUserId = $input['relative_user_id'] ?? null;
     
-    if (!$elderlyPrivateKey || !$cameraUrl || !$relativeUserId) {
+    if (!$elderlyPrivateKey || !$cameraUrl || !$room || !$relativeUserId) {
         echo json_encode(['success' => false, 'message' => 'Missing required parameters']);
         exit;
     }
@@ -88,7 +89,7 @@ try {
     }
     
     // Check if camera record exists for this elderly user
-    $existingStmt = $pdo->prepare("SELECT camera_links FROM users_with_cameras WHERE private_key = ?");
+    $existingStmt = $pdo->prepare("SELECT camera_links, room FROM users_with_cameras WHERE private_key = ?");
     $existingStmt->execute([$elderlyPrivateKey]);
     $existing = $existingStmt->fetch();
     
@@ -109,8 +110,8 @@ try {
         $currentLinks[] = $cameraUrl;
         $newLinksJson = json_encode($currentLinks);
         
-        $updateStmt = $pdo->prepare("UPDATE users_with_cameras SET camera_links = ? WHERE private_key = ?");
-        $updateStmt->execute([$newLinksJson, $elderlyPrivateKey]);
+        $updateStmt = $pdo->prepare("UPDATE users_with_cameras SET camera_links = ?, room = ? WHERE private_key = ?");
+        $updateStmt->execute([$newLinksJson, $room, $elderlyPrivateKey]);
         
         echo json_encode([
             'success' => true,
@@ -127,8 +128,8 @@ try {
         $newLinks = [$cameraUrl];
         $newLinksJson = json_encode($newLinks);
         
-        $insertStmt = $pdo->prepare("INSERT INTO users_with_cameras (private_key, camera_links) VALUES (?, ?)");
-        $insertStmt->execute([$elderlyPrivateKey, $newLinksJson]);
+        $insertStmt = $pdo->prepare("INSERT INTO users_with_cameras (private_key, camera_links, room) VALUES (?, ?, ?)");
+        $insertStmt->execute([$elderlyPrivateKey, $newLinksJson, $room]);
         
         echo json_encode([
             'success' => true,

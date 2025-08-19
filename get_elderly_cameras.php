@@ -84,7 +84,7 @@ try {
         
         if ($elderly) {
             // Get camera data for this elderly user
-            $cameraStmt = $pdo->prepare("SELECT camera_links FROM users_with_cameras WHERE private_key = ?");
+            $cameraStmt = $pdo->prepare("SELECT camera_links, room FROM users_with_cameras WHERE private_key = ?");
             $cameraStmt->execute([$key]);
             $cameraData = $cameraStmt->fetch();
             
@@ -104,7 +104,8 @@ try {
                 'age' => (int)$elderly['age'],
                 'gender' => $elderly['gender'],
                 'private_key' => $key,
-                'cameras' => $cameraLinks
+                'cameras' => $cameraLinks,
+                'room' => $cameraData['room'] ?? null
             ];
         }
     }
