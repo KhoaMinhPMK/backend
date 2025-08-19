@@ -88,11 +88,17 @@ try {
             $cameraStmt->execute([$key]);
             $cameraData = $cameraStmt->fetch();
             
-            $cameraLinks = [];
+            $cameras = [];
             if ($cameraData && $cameraData['camera_links']) {
                 $cameraLinks = json_decode($cameraData['camera_links'], true);
-                if (!is_array($cameraLinks)) {
-                    $cameraLinks = [];
+                if (is_array($cameraLinks)) {
+                    // Convert URLs to camera objects with room name
+                    foreach ($cameraLinks as $cameraUrl) {
+                        $cameras[] = [
+                            'url' => $cameraUrl,
+                            'room' => $cameraData['room'] ?? 'Phòng chính'
+                        ];
+                    }
                 }
             }
             
@@ -104,8 +110,7 @@ try {
                 'age' => (int)$elderly['age'],
                 'gender' => $elderly['gender'],
                 'private_key' => $key,
-                'cameras' => $cameraLinks,
-                'room' => $cameraData['room'] ?? null
+                'cameras' => $cameras
             ];
         }
     }
