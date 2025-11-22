@@ -91,7 +91,7 @@ try {
     }
     
     // Kiểm tra email đã tồn tại chưa
-    $checkEmailSql = "SELECT userId FROM user WHERE email = ? LIMIT 1";
+    $checkEmailSql = "SELECT id FROM users WHERE email = ? LIMIT 1";
     $checkEmailStmt = $conn->prepare($checkEmailSql);
     $checkEmailStmt->execute([$email]);
     $existingEmail = $checkEmailStmt->fetch(PDO::FETCH_ASSOC);
@@ -102,7 +102,7 @@ try {
     }
     
     // Kiểm tra số điện thoại đã tồn tại chưa
-    $checkPhoneSql = "SELECT userId FROM user WHERE phone = ? LIMIT 1";
+    $checkPhoneSql = "SELECT id FROM users WHERE phone = ? LIMIT 1";
     $checkPhoneStmt = $conn->prepare($checkPhoneSql);
     $checkPhoneStmt->execute([$phone]);
     $existingPhone = $checkPhoneStmt->fetch(PDO::FETCH_ASSOC);
@@ -118,17 +118,14 @@ try {
     // DEBUG: Let's try a minimal insert first to isolate the issue
     error_log('=== ATTEMPTING INSERT ===');
     
-    // Full SQL insert
-    $sql = "INSERT INTO user (
-        userName, email, phone, password, role, private_key, 
-        age, gender, blood, chronic_diseases, allergies, 
-        premium_status, premium_start_date, premium_end_date, 
-        notifications, relative_phone, home_address, created_at, updated_at
+    // Full SQL insert (Updated to match init_db.sql schema)
+    // Note: Extra fields like age, gender, etc. are not in the current users table schema
+    $sql = "INSERT INTO users (
+        full_name, email, phone, password, role, private_key, 
+        created_at
     ) VALUES (
         ?, ?, ?, ?, ?, ?, 
-        ?, ?, ?, ?, ?, 
-        ?, ?, ?, 
-        ?, ?, ?, NOW(), NOW()
+        NOW()
     )";
     
     $stmt = $conn->prepare($sql);
@@ -141,10 +138,7 @@ try {
     
     // Execute with all parameters
     $result = $stmt->execute([
-        $userName, $email, $phone, $hashedPassword, $role, $privateKey,
-        $age, $gender, $blood, $chronic_diseases, $allergies,
-        $premium_status ? 1 : 0, $premium_start_date, $premium_end_date,
-        $notifications ? 1 : 0, $relative_phone, $home_address
+        $userName, $email, $phone, $hashedPassword, $role, $privateKey
     ]);
     
     if ($result) {
@@ -152,7 +146,7 @@ try {
         error_log('Insert successful, userId: ' . $userId);
         
         // Verify what was actually saved
-        $verifySql = "SELECT * FROM user WHERE userId = ?";
+        $verifySql = "SELECT * FROM users WHERE id = ?";
         $verifyStmt = $conn->prepare($verifySql);
         $verifyStmt->execute([$userId]);
         $savedData = $verifyStmt->fetch(PDO::FETCH_ASSOC);
@@ -163,24 +157,25 @@ try {
         $responseData = [
             'user' => [
                 'userId' => (int)$userId,
-                'userName' => $savedData['userName'],
+                'userName' => $savedData['full_name'],
                 'email' => $savedData['email'],
                 'phone' => $savedData['phone'],
                 'role' => $savedData['role'],
                 'privateKey' => $savedData['private_key'],
-                'age' => $savedData['age'],
-                'gender' => $savedData['gender'],
-                'blood' => $savedData['blood'],
-                'chronic_diseases' => $savedData['chronic_diseases'],
-                'allergies' => $savedData['allergies'],
-                'premium_status' => (bool)$savedData['premium_status'],
-                'premium_start_date' => $savedData['premium_start_date'],
-                'premium_end_date' => $savedData['premium_end_date'],
-                'notifications' => (bool)$savedData['notifications'],
-                'relative_phone' => $savedData['relative_phone'],
-                'home_address' => $savedData['home_address'],
+                // Return null for fields not in DB yet
+                'age' => null,
+                'gender' => null,
+                'blood' => null,
+                'chronic_diseases' => null,
+                'allergies' => null,
+                'premium_status' => false,
+                'premium_start_date' => null,
+                'premium_end_date' => null,
+                'notifications' => true,
+                'relative_phone' => null,
+                'home_address' => null,
                 'created_at' => $savedData['created_at'],
-                'updated_at' => $savedData['updated_at']
+                'updated_at' => $savedData['created_at']
             ]
         ];
         

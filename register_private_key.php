@@ -57,8 +57,8 @@ try {
     // Hash password
     $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
     
-    // Prepare SQL for inserting into viegrand.user table
-    $sql = "INSERT INTO user (userName, phone, email, password, private_key, role) VALUES (?, ?, ?, ?, ?, ?)";
+    // Prepare SQL for inserting into users table
+    $sql = "INSERT INTO users (full_name, phone, email, password, private_key, role) VALUES (?, ?, ?, ?, ?, ?)";
     
     $stmt = $conn->prepare($sql);
     
@@ -77,7 +77,7 @@ try {
             error_log("Insert Success. New User ID: " . $userId);
             
             // Verify the insert by querying back
-            $verifySql = "SELECT userId, userName, phone, email, private_key, role FROM user WHERE userId = ?";
+            $verifySql = "SELECT id, full_name, phone, email, private_key, role FROM users WHERE id = ?";
             $verifyStmt = $conn->prepare($verifySql);
             $verifyStmt->execute([$userId]);
             $savedData = $verifyStmt->fetch(PDO::FETCH_ASSOC);
@@ -88,8 +88,8 @@ try {
                 'message' => 'User registered successfully',
                 'data' => [
                     'user' => [
-                        'userId' => (int)$savedData['userId'],
-                        'userName' => $savedData['userName'],
+                        'userId' => (int)$savedData['id'],
+                        'userName' => $savedData['full_name'],
                         'phone' => $savedData['phone'],
                         'email' => $savedData['email'],
                         'privateKey' => $savedData['private_key'],
