@@ -21,16 +21,12 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// Database configuration
-$host = 'localhost';
-$dbname = 'viegrand';
-$username = 'root';
-$password = '';
+// Include config
+require_once 'config.php';
 
 try {
     // Create database connection
-    $conn = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $conn = getDatabaseConnection();
     
     // Get JSON input
     $input = file_get_contents('php://input');

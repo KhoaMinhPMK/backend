@@ -1,12 +1,12 @@
 <?php
 // Database configuration
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'viegrand');
+define('DB_NAME', 'servervg');
 define('DB_USER', 'root');
-define('DB_PASS', '');
+define('DB_PASS', '123456');
 
-define('VIEGRAND_EMAIL', 'viegrand329@gmail.com');
-define('VIEGRAND_APP_PASSWORD', 'udfo ghsn nomp yblz');
+define('VIEGRAND_EMAIL', 'viegrand.app@gmail.com');
+define('VIEGRAND_APP_PASSWORD', 'ikfm sxzl fvbi mdyl');
 
 // API Configuration
 define('API_VERSION', 'v1');
