@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS `otp` (
   `otp_code` varchar(6) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `expires_at` timestamp NOT NULL,
-  `is_used` tinyint(1) DEFAULT 0,z
+  `is_used` tinyint(1) DEFAULT 0,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
