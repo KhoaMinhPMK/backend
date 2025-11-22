@@ -1,4 +1,9 @@
 <?php
+// Enable error logging
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/debug_log.txt');
+error_reporting(E_ALL);
+
 // Database configuration
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'servervg');

@@ -7,7 +7,7 @@ setCorsHeaders();
 
 // Chỉ cho phép POST request
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    sendErrorResponse('Method not allowed', 405);
+    sendErrorResponse('Method not allowed', 'Method not allowed', 405);
     exit;
 }
 
@@ -25,13 +25,9 @@ try {
     // Debug: log all received fields
     error_log('Received data fields: ' . json_encode(array_keys($data)));
     
-    // Debug: log privateKey specifically
-    error_log('privateKey in data: ' . (isset($data['privateKey']) ? 'YES' : 'NO'));
-    error_log('privateKey raw value: ' . (isset($data['privateKey']) ? $data['privateKey'] : 'NOT_SET'));
-    
     // Kiểm tra JSON có hợp lệ không
     if (json_last_error() !== JSON_ERROR_NONE) {
-        sendErrorResponse('Invalid JSON format');
+        sendErrorResponse('Invalid JSON format', 'Bad request', 400);
         exit;
     }
     
@@ -46,7 +42,7 @@ try {
     // Debug: log private key value before and after sanitization
     error_log('Private key before sanitization: ' . (isset($data['privateKey']) ? $data['privateKey'] : 'NULL'));
     error_log('Private key after sanitization: ' . ($privateKey ?: 'NULL'));
-    error_log('Private key length: ' . ($privateKey ? strlen($privateKey) : 0));
+    
     $age = isset($data['age']) ? (int)$data['age'] : null;
     $gender = isset($data['gender']) ? sanitizeInput($data['gender']) : null;
     $blood = isset($data['blood']) ? sanitizeInput($data['blood']) : null;
@@ -120,34 +116,48 @@ try {
     $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
     
     // DEBUG: Let's try a minimal insert first to isolate the issue
-    error_log('=== ATTEMPTING MINIMAL INSERT ===');
-    error_log('privateKey value to insert: ' . ($privateKey ?: 'NULL'));
+    error_log('=== ATTEMPTING INSERT ===');
     
-    // Minimal SQL for testing
-    $sql = "INSERT INTO user (userName, email, phone, password, role, private_key) VALUES (?, ?, ?, ?, ?, ?)";
+    // Full SQL insert
+    $sql = "INSERT INTO user (
+        userName, email, phone, password, role, private_key, 
+        age, gender, blood, chronic_diseases, allergies, 
+        premium_status, premium_start_date, premium_end_date, 
+        notifications, relative_phone, home_address, created_at, updated_at
+    ) VALUES (
+        ?, ?, ?, ?, ?, ?, 
+        ?, ?, ?, ?, ?, 
+        ?, ?, ?, 
+        ?, ?, ?, NOW(), NOW()
+    )";
     
     $stmt = $conn->prepare($sql);
     
     if (!$stmt) {
         error_log('Prepare error: ' . json_encode($conn->errorInfo()));
-        sendErrorResponse('Database prepare error');
+        sendErrorResponse('Database prepare error', 'Internal server error', 500);
         exit;
     }
     
-    // Minimal parameters
-    $result = $stmt->execute([$userName, $email, $phone, $hashedPassword, $role, $privateKey]);
+    // Execute with all parameters
+    $result = $stmt->execute([
+        $userName, $email, $phone, $hashedPassword, $role, $privateKey,
+        $age, $gender, $blood, $chronic_diseases, $allergies,
+        $premium_status ? 1 : 0, $premium_start_date, $premium_end_date,
+        $notifications ? 1 : 0, $relative_phone, $home_address
+    ]);
     
     if ($result) {
         $userId = $conn->lastInsertId();
-        error_log('Minimal insert successful, userId: ' . $userId);
+        error_log('Insert successful, userId: ' . $userId);
         
         // Verify what was actually saved
-        $verifySql = "SELECT userId, userName, email, phone, role, private_key FROM user WHERE userId = ?";
+        $verifySql = "SELECT * FROM user WHERE userId = ?";
         $verifyStmt = $conn->prepare($verifySql);
         $verifyStmt->execute([$userId]);
         $savedData = $verifyStmt->fetch(PDO::FETCH_ASSOC);
         
-        error_log('Minimal insert verification: ' . json_encode($savedData));
+        error_log('Insert verification: ' . json_encode($savedData));
         
         // Return the saved data
         $responseData = [
@@ -157,17 +167,33 @@ try {
                 'email' => $savedData['email'],
                 'phone' => $savedData['phone'],
                 'role' => $savedData['role'],
-                'privateKey' => $savedData['private_key']
+                'privateKey' => $savedData['private_key'],
+                'age' => $savedData['age'],
+                'gender' => $savedData['gender'],
+                'blood' => $savedData['blood'],
+                'chronic_diseases' => $savedData['chronic_diseases'],
+                'allergies' => $savedData['allergies'],
+                'premium_status' => (bool)$savedData['premium_status'],
+                'premium_start_date' => $savedData['premium_start_date'],
+                'premium_end_date' => $savedData['premium_end_date'],
+                'notifications' => (bool)$savedData['notifications'],
+                'relative_phone' => $savedData['relative_phone'],
+                'home_address' => $savedData['home_address'],
+                'created_at' => $savedData['created_at'],
+                'updated_at' => $savedData['updated_at']
             ]
         ];
         
-        error_log('Minimal response: ' . json_encode($responseData));
         sendSuccessResponse($responseData, 'User registered successfully');
         
     } else {
-        error_log('Minimal insert failed: ' . json_encode($stmt->errorInfo()));
-        sendErrorResponse('Failed to register user');
-    }} catch (Exception $e) {
-    sendErrorResponse('Server error: ' . $e->getMessage());
+        $errorInfo = $stmt->errorInfo();
+        error_log('Insert failed: ' . json_encode($errorInfo));
+        sendErrorResponse('Failed to register user: ' . $errorInfo[2], 'Database error', 500);
+    }
+
+} catch (Exception $e) {
+    error_log('Exception in register.php: ' . $e->getMessage());
+    sendErrorResponse('Server error: ' . $e->getMessage(), 'Internal server error', 500);
 }
 ?>
